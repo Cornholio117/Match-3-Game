@@ -26,3 +26,13 @@ All measurements on the **test device** unless stated. Development build, Profil
 | | Baseline | Memory | | | |
 | | Baseline | Cold start | | | |
 | | Baseline | Build size | | | |
+
+### Week 1 study lab (`AllocationLab`, Unity Editor Play mode, Profiler GC Alloc column)
+
+These are Editor numbers, not device numbers. Re-measure on the test device in week 8.
+
+| Date | Change | Metric | Before | After | Notes |
+|---|---|---|---|---|---|
+| 2026-10-31 | Reuse one `List<int>` and `Clear()` instead of `new List<int>()` per call | GC Alloc / frame | 88 B | 0 B | |
+| 2026-10-31 | Plain `for` loop with a counter instead of LINQ `Where().ToList()` with a captured variable | GC Alloc / frame | 284 B | 0 B | |
+| 2026-10-31 | `TMP_Text.SetText("Frame: {0}", n)` instead of `text = "Frame: " + n` | GC Alloc / frame | 74 B (no label) | 98 B (unexplained) | Direct `SetText` calls measured about 0 B each; the 98 B in `AllocationLab.Update` is not explained. Re-check on device in week 8. |
