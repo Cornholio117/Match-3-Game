@@ -25,6 +25,21 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - `for` vs `foreach`: `for` shows the index and never allocates; `foreach` is shorter but allocates when the variable's type is an interface (`IEnumerable<T>`). Prefer `for` in hot paths.
 - Editor numbers are for finding problems; device numbers go into the log.
 
+## Collections cheat sheet (Week 1, Tue)
+
+| Need | Container | Game example |
+|---|---|---|
+| Fixed count, access by position | Array | the 8x8 board: `board[x, y]` |
+| Grows and shrinks, keeps order | `List<T>` | pieces cleared this turn |
+| Each item once, fast "is it in there?" | `HashSet<T>` | cells already checked during a match search |
+| Look up a value by a key | `Dictionary<K,V>` | piece colour → score or sprite |
+| First in, first out (a line) | `Queue<T>` | pieces waiting to fall |
+| Last in, first out (a pile) | `Stack<T>` | undo history |
+
+- Searching a `List` one by one gets slower as it grows. `HashSet`/`Dictionary` go straight to the item, so they stay fast.
+- A struct used as a set/dictionary key needs `IEquatable<T>` and `GetHashCode` (like `GridPosition`).
+- Create collections once and reuse them with `Clear()` (no per-frame `new`).
+
 ## Interfaces (Week 1, Wed — started early)
 - An interface is a promise: "I have these methods". A class can promise many; it can only inherit from one parent.
 - Lets tests swap real code for a fake (`IRandom` → a dice that always returns 3).
