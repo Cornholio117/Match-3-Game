@@ -40,6 +40,15 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - A struct used as a set/dictionary key needs `IEquatable<T>` and `GetHashCode` (like `GridPosition`).
 - Create collections once and reuse them with `Clear()` (no per-frame `new`).
 
+## Delegates, generics and the event bus (Week 1, Wed)
+- `Action` = a method with no result you can hand around (`new Ability(() => ...)`); `Action<int>` receives a value; `Func<int, bool>` answers a question (last type = the answer). Lambda `x => ...` = "takes x, does/gives ...".
+- One method + a `Func` rule = many behaviours (booster `ClearWhere(cell => cell.Y == 3)`). Capturing lambdas allocate: fine for one-offs, not per-frame.
+- Interface = "it can do this" (many allowed, no shared code). Abstract class = "it is this kind of thing" (one parent, shared code; `abstract` = blank each child must fill, `protected` = children may use, `override` = my version). `sealed` = nothing may inherit; our default (R2.4). Abstract + sealed is a compile error.
+- Generics: `<T>` is a placeholder type (`List<T>`, `Pool<T>`). Constraints: `where T : new()`, `where T : class`, `where T : IPoolable` — the compiler then knows `T` can do that.
+- Object pooling: never Instantiate/Destroy repeatedly; deactivate and reuse, and reset all state on return (OnSpawned/OnDespawned).
+- Event bus: a notice board for global announcements only ("level won"). `Channel<T>` = listeners for one notice type; `EventBus` = `Dictionary<Type, object>` of channels. Publish with no listeners does nothing. For local things (a moves label) use a plain C# event instead.
+- `TryGetValue(key, out var x)` is the safe dictionary lookup; the `out` variable name must not clash with a parameter name.
+
 ## Interfaces (Week 1, Wed — started early)
 - An interface is a promise: "I have these methods". A class can promise many; it can only inherit from one parent.
 - Lets tests swap real code for a fake (`IRandom` → a dice that always returns 3).
