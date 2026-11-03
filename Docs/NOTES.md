@@ -49,6 +49,14 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - Event bus: a notice board for global announcements only ("level won"). `Channel<T>` = listeners for one notice type; `EventBus` = `Dictionary<Type, object>` of channels. Publish with no listeners does nothing. For local things (a moves label) use a plain C# event instead.
 - `TryGetValue(key, out var x)` is the safe dictionary lookup; the `out` variable name must not clash with a parameter name.
 
+## Async vs coroutines (Week 1, Thu)
+- Never wait with a plain pause: frames must keep rendering. Coroutine: `yield return new WaitForSeconds(2f)`. Async: `await Awaitable.WaitForSecondsAsync(2f, token)`.
+- A coroutine belongs to its MonoBehaviour, so Unity stops it when the object is destroyed. An async method belongs to nobody, so it keeps running and then touches a destroyed object (`MissingReferenceException`) unless it listens to a stop signal.
+- Stop signal = `CancellationToken`. In a MonoBehaviour use `destroyCancellationToken` (Unity raises it on destroy). In plain C# the caller passes a `token`; a test makes one with `CancellationTokenSource` and presses it with `source.Cancel()`.
+- A cancelled wait throws `OperationCanceledException`; catch it quietly (expected), but never leave other empty catches (real bugs, e.g. a corrupted save → log and start fresh).
+- Async can return a value (`Task<int>` / `Awaitable<T>`); coroutines need a callback. Avoid `async void` (R9): use `async Awaitable` and start with `_ = Method();`.
+- Exercise: `FakeLevelLoader` in `AsyncLoaderTests.cs` (Task-based so it runs in EditMode; the game version uses Awaitable).
+
 ## Interfaces (Week 1, Wed — started early)
 - An interface is a promise: "I have these methods". A class can promise many; it can only inherit from one parent.
 - Lets tests swap real code for a fake (`IRandom` → a dice that always returns 3).
