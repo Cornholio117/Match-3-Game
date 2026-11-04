@@ -4,6 +4,12 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Week 1 review: things to re-check (Fri)
+- Array vs List: the 8x8 board is an array (`board[x, y]`, fixed size); a `List` is for a changing count. `GridPosition` is a cell's address, not its contents.
+- Interface = a list of method names a class promises (no code, many per class). Abstract class = a parent with real code plus blanks (one parent).
+- Garbage fixes: `SetText("Score: {0}", score)` instead of string concatenation; `GameLog.Info` instead of `Debug.Log`.
+- Async: the waiter holds a `token`; the boss holds a `source` and calls `source.Cancel()`.
+
 ## Value vs reference types (Week 1, Sun)
 - `struct` = photocopy: `b = a` makes an independent copy. `Vector3`, `GridPosition`.
 - `class` = two names for one object: `b = a` points to the same object. `Transform`, `GameObject`.
