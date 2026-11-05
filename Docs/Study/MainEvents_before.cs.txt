@@ -1,0 +1,346 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using TMPro;
+using Dreamteck.Splines;
+using Unity.VisualScripting;
+using System.Diagnostics.Tracing;
+using UnityEngine.Playables;
+
+public class MainEvents : MonoBehaviour
+{
+    [Header("General Parameters")]
+    public rigidSplineMovement rigidSplineMovement;
+    public BatteryMeter batteryMeter;
+    public obs PolarisObs;
+    public SplineFollower PlayerSplineFollower;
+    public SplineFollower PolarisSplineFollower;
+    public AudioSource PolarisVoiceAudio;
+    public Rigidbody PlayerRigidbody;
+    public Animator PolarisMovmentAnimator;
+    public TextMeshProUGUI Subtitles;
+    public PP_Transition GlobalVolumeTransition;
+    public PP_Transition FaderVolumeTransition;
+    public GameObject MainMaleHands;
+    public GameObject MainFemaleHands;
+    public GameObject LandingMaleHands;
+    public GameObject LandingFemaleHands;
+    public AvaterChecker AvaterChecker;
+    private float speed;
+    private double splineProgress;
+
+    [Header("Rock Trigger Parameters")]
+    public AudioClip PolarisRockDialogue;
+    public float RockWaitTime = 3f;
+
+    [Header("Mantis Trigger Parameters")]
+    public AudioClip PolarisMantisDialogue;
+    public AudioClip MantisAudioClip;
+    public AudioSource MantisThreatAudio;
+    public AudioSource MantisVoiceAudio;
+    public AudioSource MantisFootstepsAudio;
+    public Fade_Audio_Org MantisThreatAudioFade;
+    public float MantisWaitTime = 6f;
+    public float ThreatWaitTime = 6.13f;
+    public float FinishWaitTime = 4f;
+    public Animator MantisAnim;
+    public Animator MantisTranslateAnim;
+    public Animator MantisRotateAnim;
+
+    [Header("Bridge")]
+    public float BridgeRespwanWaitTime = 3f;
+    public float BridgeCrossMin = 0.5f;
+    public float BridgeCrossMax = 1.2f;
+    public AudioSource MusicalFallingCue;
+    public AudioSource FallingAudio;
+    public Fade_Audio_Org FallingAudioFade;
+    public Animator BridgeAnime1;
+    public Animator BridgeAnime2;
+    public Animator BridgeAnime3;
+    public Animator BridgeAnime4;
+    public Animator BridgeAnime5;
+    public Animator BridgeAnime6;
+    public Animator BridgeAnime7;
+    public Animator BridgeAnime8;
+    public Animator BridgeAnime9;
+    public Animator BridgeAnime10;
+    public Animator BridgeAnime11;
+    public Animator BridgeAnime12;
+    public Animator BridgeAnime13;
+    public Animator BridgeAnime14;
+    public AudioSource Break1;
+    public AudioSource Break2;
+    public AudioSource Break3;
+    public AudioSource Break4;
+    public AudioSource Break5;
+    public AudioSource Break6;
+    public AudioSource Break7;
+    public AudioSource Break8;
+    public AudioClip PolarisBridgeDialogue;
+    public AudioClip PolarisBridgeFailDialogue;
+
+    [Header("Horse Trigger Parameters")]
+    public MovePolaris MovePolaris;
+
+    [Header("Trunk Trigger Parameters")]
+    public GameObject Trunk;
+    public ImpactCounterTRUNK ImpactCounterTRUNK;
+    public PlayableDirector TrunkDestroyedTimline;
+    public AudioClip PolarisDestroyTrunkDialogue;
+
+    private void Start()
+    {
+        if (AvaterChecker.IsMale == true)
+        {
+            MainMaleHands.SetActive(true);
+            LandingMaleHands.SetActive(true);
+        }
+        if (AvaterChecker.IsMale == false)
+        {
+            MainFemaleHands.SetActive(true);
+            LandingFemaleHands.SetActive(true);
+        }
+    }
+    private void Update()
+    {
+        speed = PlayerSplineFollower.followSpeed;
+    }
+
+    public void RockTrigger()
+    {
+        StartCoroutine(WaitForRock());
+    }
+    IEnumerator WaitForRock()
+    {
+        yield return new WaitForSeconds(RockWaitTime);
+        splineProgress = PlayerSplineFollower.GetPercent();
+        if (splineProgress < 0.025d)
+        {
+            PolarisVoiceAudio.clip = PolarisRockDialogue;
+            PolarisVoiceAudio.Play();
+            Subtitles.text = "Don’t be shy, just walk over here.";
+        }  
+    }
+
+
+    public void MantisTrigger()
+    {
+        StartCoroutine(WaitForMantis());
+        MantisFootstepsAudio.volume = 1;
+    }
+    IEnumerator WaitForMantis()
+    {
+        yield return new WaitForSeconds(MantisWaitTime);
+        if (speed > 0)
+        {
+            PolarisVoiceAudio.clip = PolarisMantisDialogue;
+            PolarisVoiceAudio.Play();
+            MantisTrigger2();
+            FinishWaitTime = 10f;
+            Subtitles.text = "Wait for the creature to pass!";
+        }
+        StartCoroutine(WaitForMantisFinish());
+    }
+    public void MantisTrigger2()
+    {
+        MantisAnim.SetTrigger("Intimidate_1");
+        MantisRotateAnim.SetTrigger("MantisRot");
+        MantisTranslateAnim.speed = 0;
+        MantisVoiceAudio.volume = 0;
+        MantisFootstepsAudio.volume = 0;
+        MantisThreatAudio.Play();
+        PolarisObs.ChangeToMainCamera();
+        PolarisMovmentAnimator.SetTrigger("Base");
+        StartCoroutine(WaitForThreat());
+    }
+    IEnumerator WaitForThreat()
+    {
+        yield return new WaitForSeconds(ThreatWaitTime);
+        MantisAnim.SetTrigger("Walk_Cycle_2");
+        MantisTranslateAnim.speed = 1;
+        MantisVoiceAudio.volume = 1;
+        MantisFootstepsAudio.volume = 1;
+        PolarisObs.ChangeToMantis();
+        MantisThreatAudioFade.FadeOut();
+    }
+    IEnumerator WaitForMantisFinish()
+    {
+        yield return new WaitForSeconds(FinishWaitTime);
+        PolarisMovmentAnimator.SetTrigger("Base");
+        PolarisObs.ChangeToMainCamera();
+    }
+
+    public void BridgeTrigger1()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime1.SetTrigger("T1");
+            BridgeAnime2.SetTrigger("T2");
+            Break1.Play();
+            PolarisVoiceAudio.clip = PolarisBridgeDialogue;
+            PolarisVoiceAudio.Play();
+            Subtitles.text = "Please try not to die Walker.";
+        }
+    }
+    public void BridgeTrigger2()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime3.SetTrigger("T3");
+            Break2.Play();
+        }
+    }
+    public void BridgeTrigger3()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime4.SetTrigger("T4");
+            BridgeAnime5.SetTrigger("T5");
+            Break3.Play();
+        }
+    }
+    public void BridgeTrigger4()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime6.SetTrigger("T6");
+            BridgeAnime7.SetTrigger("T7");
+            Break4.Play();
+        }
+    }
+    public void BridgeTrigger5()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime8.SetTrigger("T8");
+            BridgeAnime9.SetTrigger("T9");
+            BridgeAnime10.SetTrigger("T10");
+            Break5.Play();
+            Break6.Play();
+        }
+    }
+    public void BridgeTrigger6()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime11.SetTrigger("T11");
+            BridgeAnime12.SetTrigger("T12");
+            Break7.Play();
+        }
+    }
+    public void BridgeTrigger7()
+    {
+        if (speed < BridgeCrossMin || speed > BridgeCrossMax)
+        {
+            BridgeAnime13.SetTrigger("T13");
+            BridgeAnime14.SetTrigger("T14");
+            Break8.Play();
+            PolarisVoiceAudio.clip = PolarisBridgeFailDialogue;
+            Subtitles.text = "Walker!!!";
+            PolarisVoiceAudio.Play();
+            MusicalFallingCue.Play();
+            FallingAudio.Play();
+            FallingAudioFade.FadeOut();
+            PolarisSplineFollower.enabled = false;
+            PlayerSplineFollower.enabled = false;
+            PlayerRigidbody.isKinematic = false;
+            FaderVolumeTransition.fadeSpeed = 0.5f;
+            GlobalVolumeTransition.fadeSpeed = 0.5f;
+            FaderVolumeTransition.PP_Fade_IN();
+            GlobalVolumeTransition.PP_Fade_OUT();
+            StartCoroutine(WaitForBridgeRespwan());
+        }
+    }
+    IEnumerator WaitForBridgeRespwan()
+    {
+        yield return new WaitForSeconds(BridgeRespwanWaitTime);
+        PolarisSplineFollower.enabled = true;
+        PlayerSplineFollower.enabled = true;
+        PlayerRigidbody.isKinematic = true;
+        PlayerSplineFollower.SetPercent(0.358f);
+        PolarisSplineFollower.SetPercent(0.358f);
+        FaderVolumeTransition.fadeSpeed = 0.7f;
+        GlobalVolumeTransition.fadeSpeed = 0.7f;
+        FaderVolumeTransition.PP_Fade_OUT();
+        GlobalVolumeTransition.PP_Fade_IN();
+        BridgeAnime1.SetTrigger("Reset");
+        BridgeAnime2.SetTrigger("Reset");
+        BridgeAnime3.SetTrigger("Reset");
+        BridgeAnime4.SetTrigger("Reset");
+        BridgeAnime5.SetTrigger("Reset");
+        BridgeAnime6.SetTrigger("Reset");
+        BridgeAnime7.SetTrigger("Reset");
+        BridgeAnime8.SetTrigger("Reset");
+        BridgeAnime9.SetTrigger("Reset");
+        BridgeAnime10.SetTrigger("Reset");
+        BridgeAnime11.SetTrigger("Reset");
+        BridgeAnime12.SetTrigger("Reset");
+        BridgeAnime13.SetTrigger("Reset");
+        BridgeAnime14.SetTrigger("Reset");
+        StartCoroutine(WaitForResetBridgeAnimations());
+    }
+    IEnumerator WaitForResetBridgeAnimations()
+    {
+        yield return new WaitForSeconds(0.25f);
+        BridgeAnime1.ResetTrigger("T1");
+        BridgeAnime2.ResetTrigger("T2");
+        BridgeAnime3.ResetTrigger("T3");
+        BridgeAnime4.ResetTrigger("T4");
+        BridgeAnime5.ResetTrigger("T5");
+        BridgeAnime6.ResetTrigger("T6");
+        BridgeAnime7.ResetTrigger("T7");
+        BridgeAnime8.ResetTrigger("T8");
+        BridgeAnime9.ResetTrigger("T9");
+        BridgeAnime10.ResetTrigger("T10");
+        BridgeAnime11.ResetTrigger("T11");
+        BridgeAnime12.ResetTrigger("T12");
+        BridgeAnime13.ResetTrigger("T13");
+        BridgeAnime14.ResetTrigger("T14");
+        BridgeAnime1.ResetTrigger("Reset");
+        BridgeAnime2.ResetTrigger("Reset");
+        BridgeAnime3.ResetTrigger("Reset");
+        BridgeAnime4.ResetTrigger("Reset");
+        BridgeAnime5.ResetTrigger("Reset");
+        BridgeAnime6.ResetTrigger("Reset");
+        BridgeAnime7.ResetTrigger("Reset");
+        BridgeAnime8.ResetTrigger("Reset");
+        BridgeAnime9.ResetTrigger("Reset");
+        BridgeAnime10.ResetTrigger("Reset");
+        BridgeAnime11.ResetTrigger("Reset");
+        BridgeAnime12.ResetTrigger("Reset");
+        BridgeAnime13.ResetTrigger("Reset");
+        BridgeAnime14.ResetTrigger("Reset");
+    }
+
+    public void TrunkTrigger1()
+    {
+        TrunkDestroyedTimline.Play();
+        PlayerSplineFollower.enabled = true;
+        PolarisSplineFollower.enabled = true;
+        rigidSplineMovement.enabled = true;
+        batteryMeter.enabled = true;
+    }
+    public void TrunkTrigger2()
+    {
+        int ImpactHits = ImpactCounterTRUNK.hits;
+        if(ImpactHits < 1)
+        {
+            PlayerSplineFollower.enabled = false;
+            PolarisSplineFollower.enabled = false; 
+            rigidSplineMovement.enabled = false;
+            batteryMeter.enabled = false;
+            PolarisVoiceAudio.clip = PolarisDestroyTrunkDialogue;
+            PolarisVoiceAudio.Play();
+            Subtitles.text = "The trunk Walker, look at it.";
+            PolarisMovmentAnimator.SetTrigger("TT");
+        }
+    }
+    public void HorseCheckpointTriger()
+    {
+        if(MovePolaris.goal != MovePolaris.Origin)
+        {
+            PlayerSplineFollower.enabled = false;
+            PolarisSplineFollower.enabled = false;
+        }
+    }
+}
