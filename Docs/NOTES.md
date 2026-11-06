@@ -4,6 +4,12 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## State machine (Week 2, Tue)
+- The game is in exactly one state at a time (Boot, Menu, Level, Win), so impossible combinations of bools can't happen.
+- `IState` = `Enter()` + `Exit()`; `StateMachine.ChangeState(next)` = guard (same state → do nothing), `Current?.Exit()`, set `Current`, `Current.Enter()`. Leave first, then arrive. The first call has no old state to exit.
+- The machine only knows `IState` (DIP), so adding a `ShopState` never touches it. Class-based, not the Animator; one machine per concern (P2).
+- Code: `Game.Core.Flow` (`IState`, `StateMachine`); tests use a `LoggingState` that records Enter/Exit to check the order.
+
 ## Observer and Command (Week 2, Mon)
 - Observer = events / the notice board: one thing announces, many react, the announcer doesn't know them (`MovesChanged`, `EventBus`).
 - Command = an action as an object that knows how to `Execute()` and `Undo()` and remembers its own values (`AddScoreCommand(score, points)`). Keep the history in a `Stack`: newest undone first.
