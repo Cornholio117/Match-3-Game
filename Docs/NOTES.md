@@ -4,6 +4,20 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Observer and Command (Week 2, Mon)
+- Observer = events / the notice board: one thing announces, many react, the announcer doesn't know them (`MovesChanged`, `EventBus`).
+- Command = an action as an object that knows how to `Execute()` and `Undo()` and remembers its own values (`AddScoreCommand(score, points)`). Keep the history in a `Stack`: newest undone first.
+- Other uses: input queue, replays, tutorials, booster use. Real match-3 undo must restore the board state (cascades change many cells), not just "swap again".
+- `private readonly` = hidden from outside + set once in the constructor, so a command can't lose track of what it did.
+
+## SOLID (Week 2, Sun)
+- **S** Single Responsibility: one class, one job (`BoardModel` finds matches; input, view and saving live elsewhere).
+- **O** Open/Closed: add behaviour without editing old code (a new booster = a new class).
+- **L** Liskov Substitution: a child must work wherever its parent is expected (every booster activates the same way).
+- **I** Interface Segregation: small interfaces (`IPoolable` has two methods), not one giant one.
+- **D** Dependency Inversion: depend on a promise, not the concrete thing (`BoardModel` receives `IRandom`); `Bootstrap` hands in the real tools.
+- Refactor example: old `MainEvents.cs` split into narration, movement switch, bridge, mantis, hands (see `Docs/Study/MainEvents_refactor.md`). Repeated code with small differences = data in a list.
+
 ## Week 1 review: things to re-check (Fri)
 - Array vs List: the 8x8 board is an array (`board[x, y]`, fixed size); a `List` is for a changing count. `GridPosition` is a cell's address, not its contents.
 - Interface = a list of method names a class promises (no code, many per class). Abstract class = a parent with real code plus blanks (one parent).
