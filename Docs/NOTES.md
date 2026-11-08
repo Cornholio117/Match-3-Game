@@ -4,6 +4,16 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## MVP and dependency injection (Week 2, Thu)
+- **MVP:** Model = data and rules, no UI (`MovesModel`). View = only displays, no logic (a label with `ShowMoves`). Presenter = plain C# that listens to the model's events and tells the view what to show. Subscribe in `Enable`, unsubscribe in `Disable`.
+- The presenter takes an interface (`IMovesView`), so a test can hand it a fake view and check what it was asked to show; no scene needed.
+- Formatting belongs to the view, but a change like "5 / 20" needs the total, so the interface and presenter gain a parameter too.
+- **DI:** dependencies are handed in (constructor), not fetched. **Service locator:** the class reaches into a global registry; needs are hidden and tests need global setup. Project rule: DI only, no locator, no static singleton (P6, R1.7).
+- `Bootstrap` (top of the Boot scene) creates the model, view and presenter and passes them in.
+
+**Two-minute explanation (practise out loud):**
+"I'd use MVP. The model holds the data and rules with no UI, like `MovesModel`. The view only displays things, like a label with a `ShowMoves` method. The presenter is plain C# that listens to the model's events and tells the view what to show, so I can test it with a fake view. The presenter doesn't create or look up its model and view; they're handed in through its constructor, which is dependency injection, and a single Bootstrap creates everything and passes it in. I avoid a service locator because the dependencies would be hidden and tests would need global setup."
+
 ## Pool and Factory (Week 2, Wed)
 - Unity's `ObjectPool<T>` (`UnityEngine.Pool`) takes four callbacks: `createFunc` (a `Func`, makes a new one), `actionOnGet`, `actionOnRelease`, `actionOnDestroy` (`Action`s), plus `defaultCapacity` and `maxSize` (spare ones beyond it are destroyed). Use `Get()` / `Release()`.
 - Reset all state when an object goes back (our `OnDespawned`, P4) so the shelf only holds clean ones.
