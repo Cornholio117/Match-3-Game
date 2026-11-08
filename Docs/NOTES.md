@@ -4,6 +4,12 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Pool and Factory (Week 2, Wed)
+- Unity's `ObjectPool<T>` (`UnityEngine.Pool`) takes four callbacks: `createFunc` (a `Func`, makes a new one), `actionOnGet`, `actionOnRelease`, `actionOnDestroy` (`Action`s), plus `defaultCapacity` and `maxSize` (spare ones beyond it are destroyed). Use `Get()` / `Release()`.
+- Reset all state when an object goes back (our `OnDespawned`, P4) so the shelf only holds clean ones.
+- Factory = one class owns the creation details; callers say `Create(color, position)` and `Recycle(piece)`. Behind an interface (`IPieceFactory`) so tests can use a fake; sprites come from a config, so a new gem type changes config, not the factory. The board knows nothing about pooling.
+- Measured (Editor, 50 objects/frame): `Instantiate`/`Destroy` 2.0 KB and 0.55 ms → pool 0 B and 0.25 ms (see PERF_LOG.md). Compare the same Profiler row in both modes, not different rows.
+
 ## State machine (Week 2, Tue)
 - The game is in exactly one state at a time (Boot, Menu, Level, Win), so impossible combinations of bools can't happen.
 - `IState` = `Enter()` + `Exit()`; `StateMachine.ChangeState(next)` = guard (same state → do nothing), `Current?.Exit()`, set `Current`, `Current.Enter()`. Leave first, then arrive. The first call has no old state to exit.
