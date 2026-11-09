@@ -4,6 +4,12 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Unity lifecycle and ScriptableObjects (Week 3, Sun)
+- Order: `Awake` (set yourself up; once per object) → `OnEnable` (subscribe) → `Start` (use other objects; all `Awake`s have run) → `Update` (only if something changes every frame) → `OnDisable` (unsubscribe) → `OnDestroy`.
+- `OnEnable`/`OnDisable` run on every activate/deactivate (so pooled objects hit them many times); `Awake`/`OnDestroy` run once. Every `+=` needs its `-=`.
+- ScriptableObject = an asset file of data, edited in the Inspector. One class (`LevelConfig`), many assets (`SO_Level_01` … `SO_Level_20`). Private serialized fields with read-only properties; config is read-only at runtime, state lives in models (`new MovesModel(config.Moves)`). Naming: `SO_` prefix, folder `_Project/ScriptableObjects` (R3.3, P7).
+- Code: `Game.Runtime.Config.LevelConfig`; assets `SO_Level_01` (20 moves, 1000 target) and `SO_Level_02` (18 moves, 1500 target). Checked: `MovesModel(level2.Moves).Remaining == 18`.
+
 ## Week 2 review: things to re-check (Fri)
 - Factory: the board only says `Create(color, position)`. It must not know about the prefab, the pool, the sprite lookup or the reset.
 - MVP constructor: the presenter is handed a model and a view (`IMovesView`), listens to the model, and calls `ShowMoves` on the view. `Bootstrap` creates and hands them in.
