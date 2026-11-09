@@ -4,6 +4,11 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Week 2 review: things to re-check (Fri)
+- Factory: the board only says `Create(color, position)`. It must not know about the prefab, the pool, the sprite lookup or the reset.
+- MVP constructor: the presenter is handed a model and a view (`IMovesView`), listens to the model, and calls `ShowMoves` on the view. `Bootstrap` creates and hands them in.
+- Pool numbers (Editor): 2.0 KB and 0.55 ms with `Instantiate`/`Destroy` vs 0 B and 0.25 ms with `ObjectPool`.
+
 ## MVP and dependency injection (Week 2, Thu)
 - **MVP:** Model = data and rules, no UI (`MovesModel`). View = only displays, no logic (a label with `ShowMoves`). Presenter = plain C# that listens to the model's events and tells the view what to show. Subscribe in `Enable`, unsubscribe in `Disable`.
 - The presenter takes an interface (`IMovesView`), so a test can hand it a fake view and check what it was asked to show; no scene needed.
