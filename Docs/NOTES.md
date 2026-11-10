@@ -4,6 +4,13 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Unit testing (Week 3, Mon)
+- Arrange / Act / Assert; one behaviour per test; name `Method_Condition_ExpectedResult` (R6.2); no real randomness, time or files ("lab conditions"); test edges (zero, empty, missing), not just the happy path.
+- EditMode = fast, no Play, for pure `Game.Core` logic. PlayMode = needs the Unity loop (lifecycle, coroutines, prefabs), slower, for integration.
+- To test code outside `Game.Core`, add its assembly to the test asmdef references (`Game.Tests.EditMode` now references `Game.Runtime`). A ScriptableObject can be created in a test with `ScriptableObject.CreateInstance<T>()`; destroy it with `Object.DestroyImmediate`.
+- Data validation test: `AssetDatabase.FindAssets("t:LevelConfig")` checks every level asset (moves > 0, target > 0) and puts the asset path in the failure message. The Inspector's `[Min(1)]` blocks typing 0, so this is a backstop against hand-edited or broken assets.
+- Count: 57 EditMode tests pass.
+
 ## Unity lifecycle and ScriptableObjects (Week 3, Sun)
 - Order: `Awake` (set yourself up; once per object) → `OnEnable` (subscribe) → `Start` (use other objects; all `Awake`s have run) → `Update` (only if something changes every frame) → `OnDisable` (unsubscribe) → `OnDestroy`.
 - `OnEnable`/`OnDisable` run on every activate/deactivate (so pooled objects hit them many times); `Awake`/`OnDestroy` run once. Every `+=` needs its `-=`.
