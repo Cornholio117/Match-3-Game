@@ -28,6 +28,7 @@ A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swa
 - 20 levels, data-driven (`LevelConfig` ScriptableObject per level: moves, target, goal type).
 - Goal types: reach a target **score**, or **collect N pieces** of a colour.
 - Ramp: fewer moves and higher targets over time; levels 1 to 5 use 4 colours, the rest use 5. Starting guess: ~25 moves early, ~15 moves late.
+- **Stretch:** if everything goes smoothly, ramp up to 6 and 7 colours in the late levels (all 7 gem designs already exist). The colour count is a per-level config value, so this costs no code. More colours make matches rarer, so those levels need more moves and the "no valid move" check matters more.
 
 ## Progression and economy
 | Part | Rule |
