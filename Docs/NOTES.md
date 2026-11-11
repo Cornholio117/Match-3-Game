@@ -4,6 +4,13 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 
 ---
 
+## Architecture (Week 3, Wed)
+- Review: folders follow R3, five assemblies, Force Text, visible `.meta`, `Library`/`Temp`/`Logs`/`UserSettings` ignored, LFS patterns for PNG/PSD/audio/fonts/models, Boot is scene 0 with the R4 hierarchy.
+- Service layer (P6): `ISaveService`, `IAudioService`, `IAnalyticsService` in `Game.Core.Services`, each with a `Null...Service` stand-in that does nothing. Game code depends on the interface; a real SDK slots in later (save week 6, analytics/ads/IAP week 7). Null services are used in the Editor and in tests.
+- `Bootstrap` (`Game.Runtime`, on the `Bootstrap` object in the Boot scene) is the composition root: creates the services in `Awake` and holds them; later it hands them to the scenes. No static `Instance`, no locator.
+- Player settings fixed: Android package id `com.johnober.geocrush` (lowercase by convention; permanent once uploaded to Google Play) and portrait orientation.
+- 61 EditMode tests pass.
+
 ## Unit testing (Week 3, Mon)
 - Arrange / Act / Assert; one behaviour per test; name `Method_Condition_ExpectedResult` (R6.2); no real randomness, time or files ("lab conditions"); test edges (zero, empty, missing), not just the happy path.
 - EditMode = fast, no Play, for pure `Game.Core` logic. PlayMode = needs the Unity loop (lifecycle, coroutines, prefabs), slower, for integration.
