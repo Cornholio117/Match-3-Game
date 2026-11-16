@@ -3,7 +3,7 @@
 One page. Decisions made in week 3 (Tuesday). Numbers are starting values; all of them live in config assets and are meant to be tuned.
 
 ## Pitch
-A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swap, match, cascade. Short levels, limited moves, one booster and two special pieces. The goal is a game that feels good in a 30-second video, with clean, tested architecture behind it.
+A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swap, match, cascade. Short levels, limited moves, one booster and three special pieces. The goal is a game that feels good in a 30-second video, with clean, tested architecture behind it.
 
 **Platform:** Android first (iOS-ready code), portrait, one-handed play. **Art:** gem sprites provided by the author (7 designs, 5 will be used).
 
@@ -20,6 +20,7 @@ A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swa
 ## Special piece and combo
 - **Line gem:** a 4-match creates a gem that, when matched or swapped, clears its **row** (horizontal 4-match) or **column** (vertical 4-match). A small arrow shows its direction.
 - **Diagonal gem:** an **L or T shaped match** (a horizontal and a vertical run of 3 crossing) creates a gem on the crossing cell that, when matched or swapped, clears **both diagonals** through it across the whole board (an X). It is rarer than a 4-match, so it is more powerful, and it looks different from the line gem (straight lines) and the hammer (a plus). Built after the line gem on the same machinery; **dropped first if we fall behind**.
+- **Shockwave gem:** a **5-match** (five in a straight line) creates a gem that, when matched or swapped, clears a **5×5 area** around it (25 cells, about 40% of the board) with an expanding-ring effect. The rarest and strongest gem: it works by area, so it looks and plays differently from the line gem and the diagonal gem. The radius is a config value (2 = 5×5, 1 = 3×3) so it can be balanced. Built last, so **it is the first thing dropped if we fall behind**, then the diagonal gem.
 - **Combo:** swapping two line gems together clears a row **and** a column at once.
 
 ## Booster
@@ -53,7 +54,7 @@ A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swa
 
 ## Scope cut list (not in v1)
 - Timed mode in the style of Bejeweled Blitz (stretch goal only).
-- More special pieces beyond the line gem and the diagonal gem, such as a 5-match gem.
+- Special pieces beyond the line, diagonal and shockwave gems (for example a colour-clear gem like Bejeweled's, which we deliberately avoid copying).
 - Multiplayer, accounts, server backend, localization.
 - Real-money purchases (a coin pack is a possible later idea).
 
