@@ -35,6 +35,23 @@ namespace Game.Core.Board
             return _cells[position.X, position.Y];
         }
 
+        public void SetPiece(GridPosition position, PieceColor color)
+        {
+            if (!position.IsInside(Width, Height))
+                throw new ArgumentOutOfRangeException(nameof(position));
+
+            _cells[position.X, position.Y] = color;
+        }
+
+        /// <summary>Exchanges the gems in two cells. It does not check the swap rules; see SwapRules.</summary>
+        public void Swap(GridPosition a, GridPosition b)
+        {
+            var first = GetPiece(a);
+            var second = GetPiece(b);
+            _cells[a.X, a.Y] = second;
+            _cells[b.X, b.Y] = first;
+        }
+
         /// <summary>
         /// Fills every cell with a random colour from the first colorCount colours, without creating any row
         /// or column of three. The same random sequence always gives the same board.

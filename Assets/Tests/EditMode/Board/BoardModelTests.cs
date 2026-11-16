@@ -142,5 +142,44 @@ namespace Game.Tests.EditMode.Board
 
             Assert.Throws<System.ArgumentOutOfRangeException>(() => board.Fill(new SeededRandom(1), colorCount));
         }
+
+        [Test]
+        public void SetPiece_InsideBoard_ChangesThatCell()
+        {
+            var board = new BoardModel(Size, Size);
+
+            board.SetPiece(new GridPosition(2, 5), PieceColor.Purple);
+
+            Assert.That(board.GetPiece(new GridPosition(2, 5)), Is.EqualTo(PieceColor.Purple));
+        }
+
+        [Test]
+        public void SetPiece_OutsideBoard_Throws()
+        {
+            var board = new BoardModel(Size, Size);
+
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => board.SetPiece(new GridPosition(8, 8), PieceColor.Red));
+        }
+
+        [Test]
+        public void Swap_TwoCells_ExchangesTheirGems()
+        {
+            var board = new BoardModel(Size, Size);
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red);
+            board.SetPiece(new GridPosition(1, 0), PieceColor.Blue);
+
+            board.Swap(new GridPosition(0, 0), new GridPosition(1, 0));
+
+            Assert.That(board.GetPiece(new GridPosition(0, 0)), Is.EqualTo(PieceColor.Blue));
+            Assert.That(board.GetPiece(new GridPosition(1, 0)), Is.EqualTo(PieceColor.Red));
+        }
+
+        [Test]
+        public void Swap_OutsideBoard_Throws()
+        {
+            var board = new BoardModel(Size, Size);
+
+            Assert.Throws<System.ArgumentOutOfRangeException>(() => board.Swap(new GridPosition(0, 0), new GridPosition(-1, 0)));
+        }
     }
 }
