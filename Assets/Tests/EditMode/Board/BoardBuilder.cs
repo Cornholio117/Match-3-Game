@@ -29,6 +29,39 @@ namespace Game.Tests.EditMode.Board
             return board;
         }
 
+        /// <summary>The reverse of FromRows: reads a board back as a picture, top row first, so tests can compare it.</summary>
+        public static string[] ToRows(BoardModel board)
+        {
+            var rows = new string[board.Height];
+
+            for (var row = 0; row < board.Height; row++)
+            {
+                var y = board.Height - 1 - row;
+                var letters = new char[board.Width];
+                for (var x = 0; x < board.Width; x++)
+                    letters[x] = LetterOf(board.GetPiece(new GridPosition(x, y)));
+
+                rows[row] = new string(letters);
+            }
+
+            return rows;
+        }
+
+        private static char LetterOf(PieceColor color)
+        {
+            switch (color)
+            {
+                case PieceColor.Green: return 'G';
+                case PieceColor.Blue: return 'B';
+                case PieceColor.Red: return 'R';
+                case PieceColor.Purple: return 'P';
+                case PieceColor.Yellow: return 'Y';
+                case PieceColor.White: return 'W';
+                case PieceColor.Pink: return 'K';
+                default: return '.';
+            }
+        }
+
         private static PieceColor ColorOf(char letter)
         {
             switch (letter)
