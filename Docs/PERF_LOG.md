@@ -27,6 +27,14 @@ All measurements on the **test device** unless stated. Development build, Profil
 | | Baseline | Cold start | | | |
 | | Baseline | Build size | | | |
 
+### Week 4 board animations (`BoardView`, Unity Editor Play mode, `GC Allocated In Frame`, median over frames)
+
+Method: a probe samples the per-frame allocation counter without allocating itself (preallocated arrays), first for 240 idle frames, then for the frames of 6 turns (a swap plus its cascade). The Editor allocates about 22 KB per frame on its own, so the number that matters is the **difference** between turn frames and idle frames. Editor numbers; re-measure on the test device in week 8.
+
+| Date | Change | Metric | Before | After | Notes |
+|---|---|---|---|---|---|
+| 2026-11-18 | `await Awaitable.NextFrameAsync(destroyCancellationToken)` → `await Awaitable.NextFrameAsync()` + `destroyCancellationToken.ThrowIfCancellationRequested()` | GC Alloc / frame during a turn, minus idle (median) | 48 B | 0 B | passing the token each frame registers a new cancellation callback, which allocates; idle median 22,638 B, turn median 22,686 B → 22,638 B |
+
 ### Week 2 pool lab (`PoolLab`, Unity Editor Play mode, Profiler CPU Hierarchy, `PoolLab.Update` row, average per frame)
 
 50 objects spawned and removed every frame from a simple quad prefab. Editor numbers, not device numbers; `Destroy` finishes later in the frame, so the whole-frame saving for the non-pool mode is likely larger than the `Update` row shows. Re-measure with the real gem prefab on the test device in week 8.
