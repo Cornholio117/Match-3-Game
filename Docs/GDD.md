@@ -21,7 +21,8 @@ A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swa
 - **Line gem:** a 4-match creates a gem that, when matched or swapped, clears its **row** (horizontal 4-match) or **column** (vertical 4-match). A small arrow shows its direction.
 - **Diagonal gem:** an **L or T shaped match** (a horizontal and a vertical run of 3 crossing) creates a gem on the crossing cell that, when matched or swapped, clears **both diagonals** through it across the whole board (an X). It is rarer than a 4-match, so it is more powerful, and it looks different from the line gem (straight lines) and the hammer (a plus). Built after the line gem on the same machinery; **dropped first if we fall behind**.
 - **Shockwave gem:** a **5-match** (five in a straight line) creates a gem that, when matched or swapped, clears a **5×5 area** around it (25 cells, about 40% of the board) with an expanding-ring effect. The rarest and strongest gem: it works by area, so it looks and plays differently from the line gem and the diagonal gem. The radius is a config value (2 = 5×5, 1 = 3×3) so it can be balanced. Built last, so **it is the first thing dropped if we fall behind**, then the diagonal gem.
-- **Combo:** swapping two line gems together clears a row **and** a column at once.
+- **How special gems work (decided):** a special gem keeps its colour and **fires when it is part of a match** (three or more of its colour including it), like in most match-3 games. It appears **where the player moved** to make the run (for a cascade, in the run's lower-left cell). Cleared lines and areas can contain other specials, which **fire too** (chain reaction), bounded by the cascade limit.
+- **Combo:** swapping two line gems together clears a row **and** a column at once. This is the one exception to "fires when matched": swapping two special gems is always a legal move and triggers their combo.
 
 ## Booster
 - **Hammer (plus shape):** tap a gem to clear it and its 4 neighbours. Costs 50 coins; at most one use per level. Size and price are config values.
@@ -57,6 +58,10 @@ A fast, satisfying 2D match-3 for Android phones in the spirit of Bejeweled: swa
 - Special pieces beyond the line, diagonal and shockwave gems (for example a colour-clear gem like Bejeweled's, which we deliberately avoid copying).
 - Multiplayer, accounts, server backend, localization.
 - Real-money purchases (a coin pack is a possible later idea).
+
+## Art reservations and future input
+- **Moon Rock (white) and Stardust Quartz (pink)** are reserved as the 6th and 7th colours for the late-level difficulty ramp; they are **not** used for special gems.
+- The **"with glow" versions** of every gem are reserved for a future second input mode: tap a gem to select it (it glows), then tap a neighbour to swap, as an alternative to swiping.
 
 ## Open items
 - Choose which 5 of the 7 gem designs to use, and whether to use the glow versions.
