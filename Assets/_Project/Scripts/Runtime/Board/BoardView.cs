@@ -153,7 +153,8 @@ namespace Game.Runtime.Board
             var elapsed = 0f;
             while (elapsed < _clearSeconds)
             {
-                await Awaitable.NextFrameAsync(destroyCancellationToken);
+                await Awaitable.NextFrameAsync();
+                destroyCancellationToken.ThrowIfCancellationRequested();
                 elapsed += Time.deltaTime;
                 var scale = 1f - Mathf.Clamp01(elapsed / _clearSeconds);
                 for (var i = 0; i < _moving.Count; i++)
@@ -240,7 +241,10 @@ namespace Game.Runtime.Board
             var elapsed = 0f;
             while (elapsed < seconds)
             {
-                await Awaitable.NextFrameAsync(destroyCancellationToken);
+                // Checking the token by hand is cheaper than passing it to NextFrameAsync every frame, which
+                // registers a new cancellation callback (and allocates) on each await.
+                await Awaitable.NextFrameAsync();
+                destroyCancellationToken.ThrowIfCancellationRequested();
                 elapsed += Time.deltaTime;
                 var t = Mathf.Clamp01(elapsed / seconds);
                 var eased = 1f - (1f - t) * (1f - t);
