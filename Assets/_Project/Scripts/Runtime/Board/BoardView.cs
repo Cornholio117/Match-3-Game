@@ -28,6 +28,12 @@ namespace Game.Runtime.Board
         [Tooltip("Seconds for new gems to drop in from above the board.")]
         [SerializeField, Min(0.01f)] private float _spawnSeconds = 0.25f;
 
+        [Tooltip("Seconds for the pop when a gem turns into a special gem.")]
+        [SerializeField, Min(0.01f)] private float _createSeconds = 0.2f;
+
+        [Tooltip("How big a new special gem grows at the peak of its pop, relative to normal size.")]
+        [SerializeField, Min(1f)] private float _popScale = 1.35f;
+
         [Header("Debug")]
         [SerializeField] private bool _debugMode;
 
@@ -63,7 +69,9 @@ namespace Game.Runtime.Board
                 for (var x = 0; x < _width; x++)
                 {
                     var position = new GridPosition(x, y);
-                    _pieces[x, y] = CreatePiece(board.GetPiece(position), CellToWorld(position));
+                    var piece = CreatePiece(board.GetPiece(position), CellToWorld(position));
+                    piece.SetKind(board.GetKind(position), _pieceSet.GetOverlay(board.GetKind(position)));
+                    _pieces[x, y] = piece;
                 }
             }
         }
@@ -134,6 +142,9 @@ namespace Game.Runtime.Board
                     case BoardStepKind.Spawn:
                         await PlaySpawnsAsync(steps, start, end);
                         break;
+                    case BoardStepKind.Create:
+                        await PlayCreatesAsync(steps, start, end);
+                        break;
                 }
 
                 start = end;
@@ -196,6 +207,36 @@ namespace Game.Runtime.Board
             }
 
             await RunMovesAsync(_spawnSeconds);
+        }
+
+        // The gem stays in its cell: it gets its overlay and a short pop so the player notices the new special gem.
+        private async Awaitable PlayCreatesAsync(List<BoardStep> steps, int start, int end)
+        {
+            _moving.Clear();
+            for (var i = start; i < end; i++)
+            {
+                var cell = steps[i].From;
+                var piece = _pieces[cell.X, cell.Y];
+                piece.SetKind(steps[i].SpecialKind, _pieceSet.GetOverlay(steps[i].SpecialKind));
+                _moving.Add(piece);
+            }
+
+            var elapsed = 0f;
+            while (elapsed < _createSeconds)
+            {
+                await Awaitable.NextFrameAsync();
+                destroyCancellationToken.ThrowIfCancellationRequested();
+                elapsed += Time.deltaTime;
+
+                // A half sine wave: grows to _popScale at the middle, then settles back to normal size.
+                var t = Mathf.Clamp01(elapsed / _createSeconds);
+                var scale = 1f + (_popScale - 1f) * Mathf.Sin(t * Mathf.PI);
+                for (var i = 0; i < _moving.Count; i++)
+                    _moving[i].transform.localScale = new Vector3(scale, scale, 1f);
+            }
+
+            for (var i = 0; i < _moving.Count; i++)
+                _moving[i].transform.localScale = Vector3.one;
         }
 
         private PieceView CreatePiece(PieceColor color, Vector3 position)
