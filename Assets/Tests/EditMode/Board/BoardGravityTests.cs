@@ -64,6 +64,19 @@ namespace Game.Tests.EditMode.Board
         }
 
         [Test]
+        public void Apply_SpecialGem_KeepsItsKindWhenItFalls()
+        {
+            var board = new BoardModel(1, 3);
+            board.SetPiece(new GridPosition(0, 2), PieceColor.Green, PieceKind.LineVertical);
+
+            BoardGravity.Apply(board, new List<BoardStep>());
+
+            Assert.That(board.GetPiece(new GridPosition(0, 0)), Is.EqualTo(PieceColor.Green));
+            Assert.That(board.GetKind(new GridPosition(0, 0)), Is.EqualTo(PieceKind.LineVertical));
+            Assert.That(board.GetKind(new GridPosition(0, 2)), Is.EqualTo(PieceKind.Normal));
+        }
+
+        [Test]
         public void Apply_NoGaps_MovesNothing()
         {
             var board = BoardBuilder.FromRows(

@@ -175,6 +175,49 @@ namespace Game.Tests.EditMode.Board
         }
 
         [Test]
+        public void GetKind_NewBoard_IsNormal()
+        {
+            var board = new BoardModel(Size, Size);
+
+            Assert.That(board.GetKind(new GridPosition(3, 3)), Is.EqualTo(PieceKind.Normal));
+        }
+
+        [Test]
+        public void SetPiece_WithKind_StoresTheKind()
+        {
+            var board = new BoardModel(Size, Size);
+
+            board.SetPiece(new GridPosition(1, 1), PieceColor.Red, PieceKind.LineVertical);
+
+            Assert.That(board.GetKind(new GridPosition(1, 1)), Is.EqualTo(PieceKind.LineVertical));
+            Assert.That(board.GetPiece(new GridPosition(1, 1)), Is.EqualTo(PieceColor.Red));
+        }
+
+        [Test]
+        public void SetPiece_WithoutKind_ReplacesASpecialWithANormalGem()
+        {
+            var board = new BoardModel(Size, Size);
+            board.SetPiece(new GridPosition(1, 1), PieceColor.Red, PieceKind.LineHorizontal);
+
+            board.SetPiece(new GridPosition(1, 1), PieceColor.Blue);
+
+            Assert.That(board.GetKind(new GridPosition(1, 1)), Is.EqualTo(PieceKind.Normal));
+        }
+
+        [Test]
+        public void Swap_SpecialGem_CarriesItsKind()
+        {
+            var board = new BoardModel(Size, Size);
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red, PieceKind.LineHorizontal);
+            board.SetPiece(new GridPosition(1, 0), PieceColor.Blue);
+
+            board.Swap(new GridPosition(0, 0), new GridPosition(1, 0));
+
+            Assert.That(board.GetKind(new GridPosition(1, 0)), Is.EqualTo(PieceKind.LineHorizontal));
+            Assert.That(board.GetKind(new GridPosition(0, 0)), Is.EqualTo(PieceKind.Normal));
+        }
+
+        [Test]
         public void Swap_OutsideBoard_Throws()
         {
             var board = new BoardModel(Size, Size);

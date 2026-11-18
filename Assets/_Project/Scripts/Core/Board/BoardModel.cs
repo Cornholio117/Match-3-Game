@@ -10,6 +10,7 @@ namespace Game.Core.Board
         public const int MaxColorCount = 7;
 
         private readonly PieceColor[,] _cells;
+        private readonly PieceKind[,] _kinds;
 
         public int Width { get; }
         public int Height { get; }
@@ -25,6 +26,7 @@ namespace Game.Core.Board
             Width = width;
             Height = height;
             _cells = new PieceColor[width, height];
+            _kinds = new PieceKind[width, height];
         }
 
         public PieceColor GetPiece(GridPosition position)
@@ -35,21 +37,41 @@ namespace Game.Core.Board
             return _cells[position.X, position.Y];
         }
 
+        public PieceKind GetKind(GridPosition position)
+        {
+            if (!position.IsInside(Width, Height))
+                throw new ArgumentOutOfRangeException(nameof(position));
+
+            return _kinds[position.X, position.Y];
+        }
+
+        /// <summary>Puts a normal gem (or an empty cell) in a cell, replacing whatever was there.</summary>
         public void SetPiece(GridPosition position, PieceColor color)
+        {
+            SetPiece(position, color, PieceKind.Normal);
+        }
+
+        public void SetPiece(GridPosition position, PieceColor color, PieceKind kind)
         {
             if (!position.IsInside(Width, Height))
                 throw new ArgumentOutOfRangeException(nameof(position));
 
             _cells[position.X, position.Y] = color;
+            _kinds[position.X, position.Y] = kind;
         }
 
-        /// <summary>Exchanges the gems in two cells. It does not check the swap rules; see SwapRules.</summary>
+        /// <summary>Exchanges the gems (colour and kind) in two cells. It does not check the swap rules; see SwapRules.</summary>
         public void Swap(GridPosition a, GridPosition b)
         {
-            var first = GetPiece(a);
-            var second = GetPiece(b);
-            _cells[a.X, a.Y] = second;
-            _cells[b.X, b.Y] = first;
+            var firstColor = GetPiece(a);
+            var firstKind = GetKind(a);
+            var secondColor = GetPiece(b);
+            var secondKind = GetKind(b);
+
+            _cells[a.X, a.Y] = secondColor;
+            _kinds[a.X, a.Y] = secondKind;
+            _cells[b.X, b.Y] = firstColor;
+            _kinds[b.X, b.Y] = firstKind;
         }
 
         /// <summary>

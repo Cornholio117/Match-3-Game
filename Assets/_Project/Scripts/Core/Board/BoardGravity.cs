@@ -24,7 +24,9 @@ namespace Game.Core.Board
                     if (y != restingY)
                     {
                         var to = new GridPosition(x, restingY);
-                        board.SetPiece(to, color);
+
+                        // A special gem keeps its kind as it falls.
+                        board.SetPiece(to, color, board.GetKind(from));
                         board.SetPiece(from, PieceColor.None);
                         steps.Add(BoardStep.Fall(color, from, to));
                         moved++;

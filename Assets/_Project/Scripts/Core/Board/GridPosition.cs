@@ -44,7 +44,9 @@ namespace Game.Core.Board
 
         public override bool Equals(object obj) => obj is GridPosition other && Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(X, Y);
+        // A fixed formula (not HashCode.Combine, which is randomised per run) keeps the iteration order of sets of
+        // cells identical between runs, so the same seed always plays back the same steps in the same order.
+        public override int GetHashCode() => unchecked((X * 73856093) ^ (Y * 19349663));
 
         public static bool operator ==(GridPosition left, GridPosition right) => left.Equals(right);
 

@@ -63,7 +63,7 @@ namespace Game.Core.Board
                 return new SwapOutcome(false, default);
 
             Board.Swap(a, b);
-            var turn = _resolver.Resolve(Board, _random, _colorCount, steps);
+            var turn = _resolver.Resolve(Board, _random, _colorCount, steps, a, b);
             return new SwapOutcome(true, turn);
         }
     }
