@@ -106,6 +106,49 @@ namespace Game.Tests.EditMode.Board
         }
 
         [Test]
+        public void IsValidSwap_TwoSpecialGemsWithNoMatch_IsLegal()
+        {
+            var board = BoardBuilder.FromRows(
+                "RB");
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red, PieceKind.LineHorizontal);
+            board.SetPiece(new GridPosition(1, 0), PieceColor.Blue, PieceKind.LineVertical);
+
+            Assert.That(SwapRules.IsValidSwap(board, new GridPosition(0, 0), new GridPosition(1, 0)), Is.True);
+        }
+
+        [Test]
+        public void IsValidSwap_TwoSpecialGemsOfTheSameColour_IsLegal()
+        {
+            var board = BoardBuilder.FromRows(
+                "RR");
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red, PieceKind.LineHorizontal);
+            board.SetPiece(new GridPosition(1, 0), PieceColor.Red, PieceKind.LineVertical);
+
+            Assert.That(SwapRules.IsValidSwap(board, new GridPosition(0, 0), new GridPosition(1, 0)), Is.True);
+        }
+
+        [Test]
+        public void IsValidSwap_OneSpecialGemAndOneNormalGemWithNoMatch_IsStillRejected()
+        {
+            var board = BoardBuilder.FromRows(
+                "RB");
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red, PieceKind.LineHorizontal);
+
+            Assert.That(SwapRules.IsValidSwap(board, new GridPosition(0, 0), new GridPosition(1, 0)), Is.False);
+        }
+
+        [Test]
+        public void IsValidSwap_TwoSpecialGemsNotNeighbours_IsStillRejected()
+        {
+            var board = BoardBuilder.FromRows(
+                "RYB");
+            board.SetPiece(new GridPosition(0, 0), PieceColor.Red, PieceKind.LineHorizontal);
+            board.SetPiece(new GridPosition(2, 0), PieceColor.Blue, PieceKind.LineVertical);
+
+            Assert.That(SwapRules.IsValidSwap(board, new GridPosition(0, 0), new GridPosition(2, 0)), Is.False);
+        }
+
+        [Test]
         public void IsValidSwap_ValidSwap_LeavesTheBoardUnchanged()
         {
             var board = PictureThree();

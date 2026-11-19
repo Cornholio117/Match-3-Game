@@ -62,8 +62,11 @@ namespace Game.Core.Board
             if (!SwapRules.IsValidSwap(Board, a, b))
                 return new SwapOutcome(false, default);
 
+            // Two special gems swapped together trigger their combo instead of needing a match.
+            var combo = Board.GetKind(a) != PieceKind.Normal && Board.GetKind(b) != PieceKind.Normal;
+
             Board.Swap(a, b);
-            var turn = _resolver.Resolve(Board, _random, _colorCount, steps, a, b);
+            var turn = _resolver.Resolve(Board, _random, _colorCount, steps, a, b, combo);
             return new SwapOutcome(true, turn);
         }
     }

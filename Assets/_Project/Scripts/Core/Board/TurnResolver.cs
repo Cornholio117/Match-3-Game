@@ -60,8 +60,9 @@ namespace Game.Core.Board
 
         /// <summary>
         /// Resolves everything on the board, appending what happened to steps. swapFirst and swapSecond are the cells
-        /// the player just swapped: in the first wave a new special gem appears on one of them. The limit stops a
-        /// pathological refill from looping forever.
+        /// the player just swapped: in the first wave a new special gem appears on one of them. When combo is true
+        /// the swap joined two special gems: both are used up and the first wave also clears the row and column
+        /// through swapSecond, the cell the player moved to. The limit stops a pathological refill from looping forever.
         /// </summary>
         public TurnResult Resolve(
             BoardModel board,
@@ -69,7 +70,8 @@ namespace Game.Core.Board
             int colorCount,
             List<BoardStep> steps,
             GridPosition? swapFirst = null,
-            GridPosition? swapSecond = null)
+            GridPosition? swapSecond = null,
+            bool combo = false)
         {
             var cascades = 0;
             var cleared = 0;
@@ -79,19 +81,21 @@ namespace Game.Core.Board
             while (true)
             {
                 MatchFinder.Find(board, _matches);
-                if (_matches.Count == 0)
+
+                // Only the first wave has a player move; later waves are cascades and use a fixed fallback cell.
+                var first = cascades == 0 ? swapFirst : null;
+                var second = cascades == 0 ? swapSecond : null;
+                var isComboWave = combo && first.HasValue && second.HasValue;
+
+                if (_matches.Count == 0 && !isComboWave)
                     return new TurnResult(cascades, cleared, false, created, fired);
 
                 if (cascades >= _maxCascades)
                     return new TurnResult(cascades, cleared, true, created, fired);
 
-                // Only the first wave has a player move; later waves are cascades and use a fixed fallback cell.
-                var first = cascades == 0 ? swapFirst : null;
-                var second = cascades == 0 ? swapSecond : null;
-
                 PlanCreations(board, first, second);
                 CollectMatchedCells();
-                fired += FireSpecials(board);
+                fired += FireSpecials(board, isComboWave ? first : null, isComboWave ? second : null);
                 cleared += ClearCells(board, steps);
                 created += ApplyCreations(board, steps);
 
@@ -182,10 +186,31 @@ namespace Game.Core.Board
 
         // Every special gem among the cleared cells fires, clearing its row or column. That can reach more special
         // gems, which fire in turn (a chain reaction), until nothing new is added.
-        private int FireSpecials(BoardModel board)
+        private int FireSpecials(BoardModel board, GridPosition? comboFirst, GridPosition? comboSecond)
         {
             _queue.Clear();
             _fired.Clear();
+
+            var fired = 0;
+
+            if (comboFirst.HasValue && comboSecond.HasValue)
+            {
+                // A combo uses both gems up: they clear but do not fire their own lines. The combo clears the row
+                // and the column through the cell the player moved to.
+                var center = comboSecond.Value;
+                _fired.Add(comboFirst.Value);
+                _fired.Add(comboSecond.Value);
+                _cells.Add(comboFirst.Value);
+                _cells.Add(comboSecond.Value);
+
+                for (var x = 0; x < board.Width; x++)
+                    AddToClear(board, new GridPosition(x, center.Y));
+
+                for (var y = 0; y < board.Height; y++)
+                    AddToClear(board, new GridPosition(center.X, y));
+
+                fired++;
+            }
 
             foreach (var cell in _cells)
             {
@@ -193,7 +218,6 @@ namespace Game.Core.Board
                     _queue.Add(cell);
             }
 
-            var fired = 0;
             for (var i = 0; i < _queue.Count; i++)
             {
                 var cell = _queue[i];

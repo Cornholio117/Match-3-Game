@@ -5,7 +5,8 @@ namespace Game.Core.Board
     {
         /// <summary>
         /// A swap is valid when both cells are on the board, they are neighbours (not diagonal), they hold
-        /// different gems, and the swap creates a run of 3 or more. The board is always left unchanged.
+        /// different gems, and the swap creates a run of 3 or more; or when both gems are special (a combo).
+        /// The board is always left unchanged.
         /// </summary>
         public static bool IsValidSwap(BoardModel board, GridPosition a, GridPosition b)
         {
@@ -17,7 +18,15 @@ namespace Game.Core.Board
 
             var first = board.GetPiece(a);
             var second = board.GetPiece(b);
-            if (first == PieceColor.None || second == PieceColor.None || first == second)
+            if (first == PieceColor.None || second == PieceColor.None)
+                return false;
+
+            // The one exception to "a swap must make a run": two special gems may always be swapped, whatever
+            // their colours, because that move triggers their combo.
+            if (board.GetKind(a) != PieceKind.Normal && board.GetKind(b) != PieceKind.Normal)
+                return true;
+
+            if (first == second)
                 return false;
 
             // Swap, look for a match around both cells, then always swap back: the rules only answer a question.
