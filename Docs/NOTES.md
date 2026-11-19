@@ -17,6 +17,7 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - Prediction pictures: two line gems side by side on a 5×5 board → 9 cells (row 5 + column 4, the crossing counted once); a third line gem on the column → 13 cells (it fires its row for 4 more).
 - Combos for the diagonal and shockwave gems will be defined when those gems exist (each pair of kinds needs its own rule).
 - No view change: the view already plays the swap and then the recorded steps.
+- Verified on the Galaxy S21 FE (development build, incremental build 73 s): a script played legal swaps (preferring 4-matches, reading each board from a screenshot, detecting special gems by counting pure-white arrow pixels) until two line gems were side by side on turn 30, a vertical green and a horizontal red. Swapping them cleared the cross, the two swapped gems and a third line gem inside the cleared row were gone, the two other line gems on the board survived and dropped one row, and the final board was full and stable (0 differing pixels between two screenshots), with no exceptions in the phone's log.
 - Proof the tests bite: with the two "used up" lines removed (so each combo gem fires its own line too), 3 combo tests fail. 172 tests pass.
 
 ## Line gem, view (Week 4, Thu)
