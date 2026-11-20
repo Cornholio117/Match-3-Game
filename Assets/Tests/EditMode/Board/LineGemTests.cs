@@ -113,17 +113,24 @@ namespace Game.Tests.EditMode.Board
         }
 
         [Test]
-        public void Resolve_FiveInARow_CreatesNoSpecialGemYet()
+        public void Resolve_FiveInARow_MakesAShockwaveGemNotALineGem()
         {
             var board = BoardBuilder.FromRows(
                 "RYRYR",
                 "BBBBB");
+            var steps = new List<BoardStep>();
 
-            var result = new TurnResolver(1).Resolve(board, new ScriptedRandom(0, 1, 0, 1, 0), 5, new List<BoardStep>(),
+            var result = new TurnResolver(1).Resolve(board, new ScriptedRandom(0, 1, 0, 1, 0), 5, steps,
                 new GridPosition(2, 0), new GridPosition(2, 1));
 
-            Assert.That(result.SpecialsCreated, Is.EqualTo(0));
-            Assert.That(result.CellsCleared, Is.EqualTo(5));
+            // Since the shockwave gem exists, a 5-run makes it instead of a line gem; one of the five stays.
+            Assert.That(result.SpecialsCreated, Is.EqualTo(1));
+            Assert.That(result.CellsCleared, Is.EqualTo(4));
+            foreach (var step in steps)
+            {
+                if (step.Kind == BoardStepKind.Create)
+                    Assert.That(step.SpecialKind, Is.EqualTo(PieceKind.Shockwave));
+            }
         }
 
         [Test]

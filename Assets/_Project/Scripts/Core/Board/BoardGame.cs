@@ -26,7 +26,12 @@ namespace Game.Core.Board
 
         public BoardModel Board { get; }
 
-        public BoardGame(BoardModel board, int colorCount, IRandom random, int maxCascades = TurnResolver.DefaultMaxCascades)
+        public BoardGame(
+            BoardModel board,
+            int colorCount,
+            IRandom random,
+            int maxCascades = TurnResolver.DefaultMaxCascades,
+            int shockwaveRadius = TurnResolver.DefaultShockwaveRadius)
         {
             if (board == null)
                 throw new ArgumentNullException(nameof(board));
@@ -40,15 +45,21 @@ namespace Game.Core.Board
             Board = board;
             _colorCount = colorCount;
             _random = random;
-            _resolver = new TurnResolver(maxCascades);
+            _resolver = new TurnResolver(maxCascades, shockwaveRadius);
         }
 
         /// <summary>Creates a game on a new board filled with random gems and no starting runs.</summary>
-        public static BoardGame CreateFilled(int width, int height, int colorCount, IRandom random, int maxCascades = TurnResolver.DefaultMaxCascades)
+        public static BoardGame CreateFilled(
+            int width,
+            int height,
+            int colorCount,
+            IRandom random,
+            int maxCascades = TurnResolver.DefaultMaxCascades,
+            int shockwaveRadius = TurnResolver.DefaultShockwaveRadius)
         {
             var board = new BoardModel(width, height);
             board.Fill(random, colorCount);
-            return new BoardGame(board, colorCount, random, maxCascades);
+            return new BoardGame(board, colorCount, random, maxCascades, shockwaveRadius);
         }
 
         /// <summary>

@@ -27,6 +27,10 @@ namespace Game.Core.Board
     public sealed class TurnResolver
     {
         public const int DefaultMaxCascades = 50;
+        public const int DefaultShockwaveRadius = 2;
+
+        // A shockwave combo clears bands one cell either side of the centre line, so 3 cells wide. Fixed by design.
+        private const int ThickHalfWidth = 1;
 
         private readonly struct Creation
         {
@@ -43,6 +47,7 @@ namespace Game.Core.Board
         }
 
         private readonly int _maxCascades;
+        private readonly int _shockwaveRadius;
         private readonly List<Match> _matches = new List<Match>();
         private readonly HashSet<GridPosition> _cells = new HashSet<GridPosition>();
         private readonly HashSet<GridPosition> _protected = new HashSet<GridPosition>();
@@ -51,12 +56,17 @@ namespace Game.Core.Board
         private readonly List<Creation> _creations = new List<Creation>();
         private readonly List<bool> _consumed = new List<bool>();
 
-        public TurnResolver(int maxCascades = DefaultMaxCascades)
+        /// <summary>shockwaveRadius is how far a shockwave gem reaches: 2 clears a 5x5 square, 1 a 3x3 square.</summary>
+        public TurnResolver(int maxCascades = DefaultMaxCascades, int shockwaveRadius = DefaultShockwaveRadius)
         {
             if (maxCascades < 1)
                 throw new ArgumentOutOfRangeException(nameof(maxCascades));
 
+            if (shockwaveRadius < 1)
+                throw new ArgumentOutOfRangeException(nameof(shockwaveRadius));
+
             _maxCascades = maxCascades;
+            _shockwaveRadius = shockwaveRadius;
         }
 
         /// <summary>
@@ -106,9 +116,10 @@ namespace Game.Core.Board
             }
         }
 
-        // Two kinds of new special gem, in priority order:
+        // Three kinds of new special gem, in priority order:
         // 1. An L, T or + shape (a horizontal and a vertical run that cross) makes a diagonal gem.
-        // 2. A run of exactly 4 that is not part of such a shape makes a line gem: a horizontal run clears its row
+        // 2. A run of 5 or more that is not part of such a shape makes a shockwave gem.
+        // 3. A run of exactly 4 that is not part of such a shape makes a line gem: a horizontal run clears its row
         //    later, a vertical run its column.
         // Either appears where the player moved if that cell is in the shape, otherwise in a fixed fallback cell.
         private void PlanCreations(BoardModel board, GridPosition? swapFirst, GridPosition? swapSecond)
@@ -145,13 +156,18 @@ namespace Game.Core.Board
             for (var i = 0; i < _matches.Count; i++)
             {
                 var match = _matches[i];
-                if (_consumed[i] || match.Length != 4)
+                if (_consumed[i] || match.Length < 4)
                     continue;
 
                 if (!TryChooseCreationCell(board, match, swapFirst, swapSecond, out var cell))
                     continue;
 
-                var kind = match.Direction == Direction.Right ? PieceKind.LineHorizontal : PieceKind.LineVertical;
+                PieceKind kind;
+                if (match.Length >= 5)
+                    kind = PieceKind.Shockwave;
+                else
+                    kind = match.Direction == Direction.Right ? PieceKind.LineHorizontal : PieceKind.LineVertical;
+
                 _creations.Add(new Creation(cell, match.Color, kind));
                 _protected.Add(cell);
             }
@@ -306,6 +322,9 @@ namespace Game.Core.Board
                 //   line + line         the row and the column
                 //   line + diagonal     the row, the column and both diagonals (a star)
                 //   diagonal + diagonal both diagonals through each of the two swapped cells
+                //   shockwave + shockwave the whole board
+                //   shockwave + line    the row and column through the moved cell, each 3 wide
+                //   shockwave + diagonal both diagonals through the moved cell, each 3 wide
                 var first = comboFirst.Value;
                 var center = comboSecond.Value;
                 _fired.Add(first);
@@ -313,10 +332,29 @@ namespace Game.Core.Board
                 _cells.Add(first);
                 _cells.Add(center);
 
-                var firstIsDiagonal = board.GetKind(first) == PieceKind.Diagonal;
-                var secondIsDiagonal = board.GetKind(center) == PieceKind.Diagonal;
+                var firstKind = board.GetKind(first);
+                var secondKind = board.GetKind(center);
+                var firstIsDiagonal = firstKind == PieceKind.Diagonal;
+                var secondIsDiagonal = secondKind == PieceKind.Diagonal;
 
-                if (firstIsDiagonal && secondIsDiagonal)
+                if (firstKind == PieceKind.Shockwave && secondKind == PieceKind.Shockwave)
+                {
+                    AddWholeBoard(board);
+                }
+                else if (firstKind == PieceKind.Shockwave || secondKind == PieceKind.Shockwave)
+                {
+                    var otherIsDiagonal = firstKind == PieceKind.Shockwave ? secondIsDiagonal : firstIsDiagonal;
+                    if (otherIsDiagonal)
+                    {
+                        AddDiagonals(board, center, ThickHalfWidth);
+                    }
+                    else
+                    {
+                        AddRows(board, center.Y, ThickHalfWidth);
+                        AddColumns(board, center.X, ThickHalfWidth);
+                    }
+                }
+                else if (firstIsDiagonal && secondIsDiagonal)
                 {
                     AddDiagonals(board, first);
                     AddDiagonals(board, center);
@@ -353,9 +391,50 @@ namespace Game.Core.Board
                     AddColumn(board, cell.X);
                 else if (kind == PieceKind.Diagonal)
                     AddDiagonals(board, cell);
+                else if (kind == PieceKind.Shockwave)
+                    AddSquare(board, cell);
             }
 
             return fired;
+        }
+
+        // A square of cells around the gem, as far as the board allows.
+        private void AddSquare(BoardModel board, GridPosition center)
+        {
+            for (var y = center.Y - _shockwaveRadius; y <= center.Y + _shockwaveRadius; y++)
+            {
+                for (var x = center.X - _shockwaveRadius; x <= center.X + _shockwaveRadius; x++)
+                {
+                    var cell = new GridPosition(x, y);
+                    if (cell.IsInside(board.Width, board.Height))
+                        AddToClear(board, cell);
+                }
+            }
+        }
+
+        private void AddWholeBoard(BoardModel board)
+        {
+            for (var y = 0; y < board.Height; y++)
+                AddRow(board, y);
+        }
+
+        // halfWidth 1 means the row itself plus the rows just above and below: a band 3 wide.
+        private void AddRows(BoardModel board, int y, int halfWidth)
+        {
+            for (var row = y - halfWidth; row <= y + halfWidth; row++)
+            {
+                if (row >= 0 && row < board.Height)
+                    AddRow(board, row);
+            }
+        }
+
+        private void AddColumns(BoardModel board, int x, int halfWidth)
+        {
+            for (var column = x - halfWidth; column <= x + halfWidth; column++)
+            {
+                if (column >= 0 && column < board.Width)
+                    AddColumn(board, column);
+            }
         }
 
         private void AddRow(BoardModel board, int y)
@@ -371,18 +450,22 @@ namespace Game.Core.Board
         }
 
         // Both diagonals through a cell: walk outward in each of the four diagonal directions, staying on the board.
-        private void AddDiagonals(BoardModel board, GridPosition center)
+        // halfWidth 0 is a one-cell-wide line; 1 also takes the cells just beside it (3 wide), used by the shockwave combo.
+        private void AddDiagonals(BoardModel board, GridPosition center, int halfWidth = 0)
         {
             var reach = Math.Max(board.Width, board.Height);
             for (var d = -reach; d <= reach; d++)
             {
-                var up = new GridPosition(center.X + d, center.Y + d);
-                if (up.IsInside(board.Width, board.Height))
-                    AddToClear(board, up);
+                for (var k = -halfWidth; k <= halfWidth; k++)
+                {
+                    var up = new GridPosition(center.X + d + k, center.Y + d);
+                    if (up.IsInside(board.Width, board.Height))
+                        AddToClear(board, up);
 
-                var down = new GridPosition(center.X + d, center.Y - d);
-                if (down.IsInside(board.Width, board.Height))
-                    AddToClear(board, down);
+                    var down = new GridPosition(center.X + d + k, center.Y - d);
+                    if (down.IsInside(board.Width, board.Height))
+                        AddToClear(board, down);
+                }
             }
         }
 

@@ -23,6 +23,9 @@ namespace Game.Runtime.Board
         [Tooltip("How many colours are in play (3 to 7). Early levels use 4, later ones 5 or more.")]
         [SerializeField, Range(3, 7)] private int _colorCount = 5;
 
+        [Tooltip("How far a shockwave gem reaches, in cells: 2 clears a 5x5 square, 1 a 3x3 square.")]
+        [SerializeField, Range(1, 4)] private int _shockwaveRadius = 2;
+
         [Tooltip("Board seed. 0 means a different board every run, taken from the clock; the seed is logged so a board can be replayed.")]
         [SerializeField] private int _seed;
 
@@ -46,7 +49,8 @@ namespace Game.Runtime.Board
         private void Start()
         {
             var seed = _seed != 0 ? _seed : Environment.TickCount;
-            _game = BoardGame.CreateFilled(_width, _height, _colorCount, new SeededRandom(seed));
+            _game = BoardGame.CreateFilled(_width, _height, _colorCount, new SeededRandom(seed),
+                shockwaveRadius: _shockwaveRadius);
             _boardView.Build(_game.Board);
             GameLog.Info(nameof(BoardController), $"New board, seed {seed}");
         }
