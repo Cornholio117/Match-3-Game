@@ -49,6 +49,7 @@ namespace Game.Core.Board
         private readonly HashSet<GridPosition> _fired = new HashSet<GridPosition>();
         private readonly List<GridPosition> _queue = new List<GridPosition>();
         private readonly List<Creation> _creations = new List<Creation>();
+        private readonly List<bool> _consumed = new List<bool>();
 
         public TurnResolver(int maxCascades = DefaultMaxCascades)
         {
@@ -105,16 +106,46 @@ namespace Game.Core.Board
             }
         }
 
-        // A run of exactly 4 makes a line gem: a horizontal run clears its row later, a vertical run its column.
-        // It appears where the player moved if that cell is in the run, otherwise in the run's lower-left cell.
+        // Two kinds of new special gem, in priority order:
+        // 1. An L, T or + shape (a horizontal and a vertical run that cross) makes a diagonal gem.
+        // 2. A run of exactly 4 that is not part of such a shape makes a line gem: a horizontal run clears its row
+        //    later, a vertical run its column.
+        // Either appears where the player moved if that cell is in the shape, otherwise in a fixed fallback cell.
         private void PlanCreations(BoardModel board, GridPosition? swapFirst, GridPosition? swapSecond)
         {
             _creations.Clear();
             _protected.Clear();
+            _consumed.Clear();
+            for (var i = 0; i < _matches.Count; i++)
+                _consumed.Add(false);
 
-            foreach (var match in _matches)
+            for (var h = 0; h < _matches.Count; h++)
             {
-                if (match.Length != 4)
+                if (_matches[h].Direction != Direction.Right)
+                    continue;
+
+                for (var v = 0; v < _matches.Count && !_consumed[h]; v++)
+                {
+                    if (_matches[v].Direction != Direction.Up || _consumed[v])
+                        continue;
+
+                    if (!TryFindCrossing(_matches[h], _matches[v], out var crossing))
+                        continue;
+
+                    if (!TryChooseShapeCell(board, _matches[h], _matches[v], crossing, swapFirst, swapSecond, out var shapeCell))
+                        continue;
+
+                    _creations.Add(new Creation(shapeCell, _matches[h].Color, PieceKind.Diagonal));
+                    _protected.Add(shapeCell);
+                    _consumed[h] = true;
+                    _consumed[v] = true;
+                }
+            }
+
+            for (var i = 0; i < _matches.Count; i++)
+            {
+                var match = _matches[i];
+                if (_consumed[i] || match.Length != 4)
                     continue;
 
                 if (!TryChooseCreationCell(board, match, swapFirst, swapSecond, out var cell))
@@ -124,6 +155,81 @@ namespace Game.Core.Board
                 _creations.Add(new Creation(cell, match.Color, kind));
                 _protected.Add(cell);
             }
+        }
+
+        // A horizontal and a vertical run cross when the vertical run's column falls inside the horizontal run and
+        // the horizontal run's row falls inside the vertical run. The crossing cell is where they meet.
+        private static bool TryFindCrossing(Match horizontal, Match vertical, out GridPosition crossing)
+        {
+            var columnInside = vertical.Start.X >= horizontal.Start.X && vertical.Start.X < horizontal.Start.X + horizontal.Length;
+            var rowInside = horizontal.Start.Y >= vertical.Start.Y && horizontal.Start.Y < vertical.Start.Y + vertical.Length;
+
+            crossing = new GridPosition(vertical.Start.X, horizontal.Start.Y);
+            return columnInside && rowInside;
+        }
+
+        // Where the player moved if that cell is in the shape, else the crossing, else the first free cell of the shape.
+        private bool TryChooseShapeCell(
+            BoardModel board, Match horizontal, Match vertical, GridPosition crossing,
+            GridPosition? swapFirst, GridPosition? swapSecond, out GridPosition cell)
+        {
+            if (swapFirst.HasValue && CanCreateInShape(board, horizontal, vertical, swapFirst.Value))
+            {
+                cell = swapFirst.Value;
+                return true;
+            }
+
+            if (swapSecond.HasValue && CanCreateInShape(board, horizontal, vertical, swapSecond.Value))
+            {
+                cell = swapSecond.Value;
+                return true;
+            }
+
+            if (CanCreateInShape(board, horizontal, vertical, crossing))
+            {
+                cell = crossing;
+                return true;
+            }
+
+            for (var i = 0; i < horizontal.Length; i++)
+            {
+                if (CanCreateInShape(board, horizontal, vertical, horizontal.GetPosition(i)))
+                {
+                    cell = horizontal.GetPosition(i);
+                    return true;
+                }
+            }
+
+            for (var i = 0; i < vertical.Length; i++)
+            {
+                if (CanCreateInShape(board, horizontal, vertical, vertical.GetPosition(i)))
+                {
+                    cell = vertical.GetPosition(i);
+                    return true;
+                }
+            }
+
+            cell = default;
+            return false;
+        }
+
+        private bool CanCreateInShape(BoardModel board, Match horizontal, Match vertical, GridPosition cell)
+        {
+            if (board.GetKind(cell) != PieceKind.Normal || _protected.Contains(cell))
+                return false;
+
+            return RunContains(horizontal, cell) || RunContains(vertical, cell);
+        }
+
+        private static bool RunContains(Match match, GridPosition cell)
+        {
+            for (var i = 0; i < match.Length; i++)
+            {
+                if (match.GetPosition(i) == cell)
+                    return true;
+            }
+
+            return false;
         }
 
         // The new gem must be a normal gem that is not already claimed, so an existing special still fires.
@@ -195,19 +301,34 @@ namespace Game.Core.Board
 
             if (comboFirst.HasValue && comboSecond.HasValue)
             {
-                // A combo uses both gems up: they clear but do not fire their own lines. The combo clears the row
-                // and the column through the cell the player moved to.
+                // A combo uses both gems up: they clear but do not fire their own effects. What it clears depends on
+                // the pair, always centred on the cell the player moved to (the second one):
+                //   line + line         the row and the column
+                //   line + diagonal     the row, the column and both diagonals (a star)
+                //   diagonal + diagonal both diagonals through each of the two swapped cells
+                var first = comboFirst.Value;
                 var center = comboSecond.Value;
-                _fired.Add(comboFirst.Value);
-                _fired.Add(comboSecond.Value);
-                _cells.Add(comboFirst.Value);
-                _cells.Add(comboSecond.Value);
+                _fired.Add(first);
+                _fired.Add(center);
+                _cells.Add(first);
+                _cells.Add(center);
 
-                for (var x = 0; x < board.Width; x++)
-                    AddToClear(board, new GridPosition(x, center.Y));
+                var firstIsDiagonal = board.GetKind(first) == PieceKind.Diagonal;
+                var secondIsDiagonal = board.GetKind(center) == PieceKind.Diagonal;
 
-                for (var y = 0; y < board.Height; y++)
-                    AddToClear(board, new GridPosition(center.X, y));
+                if (firstIsDiagonal && secondIsDiagonal)
+                {
+                    AddDiagonals(board, first);
+                    AddDiagonals(board, center);
+                }
+                else
+                {
+                    AddRow(board, center.Y);
+                    AddColumn(board, center.X);
+
+                    if (firstIsDiagonal || secondIsDiagonal)
+                        AddDiagonals(board, center);
+                }
 
                 fired++;
             }
@@ -225,19 +346,44 @@ namespace Game.Core.Board
                     continue;
 
                 fired++;
-                if (board.GetKind(cell) == PieceKind.LineHorizontal)
-                {
-                    for (var x = 0; x < board.Width; x++)
-                        AddToClear(board, new GridPosition(x, cell.Y));
-                }
-                else
-                {
-                    for (var y = 0; y < board.Height; y++)
-                        AddToClear(board, new GridPosition(cell.X, y));
-                }
+                var kind = board.GetKind(cell);
+                if (kind == PieceKind.LineHorizontal)
+                    AddRow(board, cell.Y);
+                else if (kind == PieceKind.LineVertical)
+                    AddColumn(board, cell.X);
+                else if (kind == PieceKind.Diagonal)
+                    AddDiagonals(board, cell);
             }
 
             return fired;
+        }
+
+        private void AddRow(BoardModel board, int y)
+        {
+            for (var x = 0; x < board.Width; x++)
+                AddToClear(board, new GridPosition(x, y));
+        }
+
+        private void AddColumn(BoardModel board, int x)
+        {
+            for (var y = 0; y < board.Height; y++)
+                AddToClear(board, new GridPosition(x, y));
+        }
+
+        // Both diagonals through a cell: walk outward in each of the four diagonal directions, staying on the board.
+        private void AddDiagonals(BoardModel board, GridPosition center)
+        {
+            var reach = Math.Max(board.Width, board.Height);
+            for (var d = -reach; d <= reach; d++)
+            {
+                var up = new GridPosition(center.X + d, center.Y + d);
+                if (up.IsInside(board.Width, board.Height))
+                    AddToClear(board, up);
+
+                var down = new GridPosition(center.X + d, center.Y - d);
+                if (down.IsInside(board.Width, board.Height))
+                    AddToClear(board, down);
+            }
         }
 
         private void AddToClear(BoardModel board, GridPosition cell)

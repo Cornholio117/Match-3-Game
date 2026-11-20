@@ -107,11 +107,13 @@ namespace Game.Tests.EditMode.Board
                 "RYRYR");
             var steps = new List<BoardStep>();
 
-            // Five distinct cells make up the L; the corner must be cleared only once.
+            // Five distinct cells make up the L and the corner belongs to both runs. One of the five becomes a diagonal
+            // gem and stays; the other four clear, each exactly once.
             var result = new TurnResolver(1).Resolve(board, new SeededRandom(2), 5, steps);
 
-            Assert.That(result.CellsCleared, Is.EqualTo(5));
-            Assert.That(Count(steps, BoardStepKind.Clear), Is.EqualTo(5));
+            Assert.That(result.SpecialsCreated, Is.EqualTo(1));
+            Assert.That(result.CellsCleared, Is.EqualTo(4));
+            Assert.That(Count(steps, BoardStepKind.Clear), Is.EqualTo(4));
         }
 
         [Test]
