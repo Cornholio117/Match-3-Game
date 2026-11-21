@@ -117,10 +117,11 @@ namespace Game.Core.Board
         }
 
         // Three kinds of new special gem, in priority order:
-        // 1. An L, T or + shape (a horizontal and a vertical run that cross) makes a diagonal gem.
-        // 2. A run of 5 or more that is not part of such a shape makes a shockwave gem.
+        // 1. A run of 5 or more makes a shockwave gem, even if it crosses another run.
+        // 2. An L, T or + shape (a horizontal and a vertical run that cross, both shorter than 5) makes a diagonal gem.
         // 3. A run of exactly 4 that is not part of such a shape makes a line gem: a horizontal run clears its row
         //    later, a vertical run its column.
+        // The diagonal pairs are looked at first below only because they must claim their runs before step 3 sees them.
         // Either appears where the player moved if that cell is in the shape, otherwise in a fixed fallback cell.
         private void PlanCreations(BoardModel board, GridPosition? swapFirst, GridPosition? swapSecond)
         {
@@ -138,6 +139,10 @@ namespace Game.Core.Board
                 for (var v = 0; v < _matches.Count && !_consumed[h]; v++)
                 {
                     if (_matches[v].Direction != Direction.Up || _consumed[v])
+                        continue;
+
+                    // A run of 5 or more always makes a shockwave gem, even when it crosses another run.
+                    if (_matches[h].Length >= 5 || _matches[v].Length >= 5)
                         continue;
 
                     if (!TryFindCrossing(_matches[h], _matches[v], out var crossing))
@@ -398,18 +403,33 @@ namespace Game.Core.Board
             return fired;
         }
 
-        // A square of cells around the gem, as far as the board allows.
+        // A square around the gem. Near an edge the square slides inward instead of being cut off, so the gem always
+        // clears a full (2 * radius + 1) square (the board is assumed to be at least that big).
         private void AddSquare(BoardModel board, GridPosition center)
         {
-            for (var y = center.Y - _shockwaveRadius; y <= center.Y + _shockwaveRadius; y++)
+            var cx = ClampCenter(center.X, board.Width);
+            var cy = ClampCenter(center.Y, board.Height);
+
+            for (var y = cy - _shockwaveRadius; y <= cy + _shockwaveRadius; y++)
             {
-                for (var x = center.X - _shockwaveRadius; x <= center.X + _shockwaveRadius; x++)
+                for (var x = cx - _shockwaveRadius; x <= cx + _shockwaveRadius; x++)
                 {
                     var cell = new GridPosition(x, y);
                     if (cell.IsInside(board.Width, board.Height))
                         AddToClear(board, cell);
                 }
             }
+        }
+
+        // Keeps the square's centre far enough from both edges for the whole square to fit.
+        private int ClampCenter(int value, int size)
+        {
+            var low = _shockwaveRadius;
+            var high = size - 1 - _shockwaveRadius;
+            if (high < low)
+                return size / 2;
+
+            return Math.Min(Math.Max(value, low), high);
         }
 
         private void AddWholeBoard(BoardModel board)

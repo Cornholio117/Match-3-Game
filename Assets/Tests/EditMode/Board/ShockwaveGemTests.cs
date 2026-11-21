@@ -96,44 +96,104 @@ namespace Game.Tests.EditMode.Board
         }
 
         [Test]
-        public void Resolve_FiveInARowCrossedByARun_MakesTheDiagonalGemInstead()
+        public void Resolve_FiveInARowCrossedByARun_StillMakesAShockwaveGemNotADiagonal()
         {
-            // A T: five greens on the floor and three up column 2. The diagonal rule has priority.
+            // A T: five greens on the floor and three up column 2. A 5-run always wins over the diagonal rule.
             var board = BoardBuilder.FromRows(
                 "RYGYR",
                 "YRGRY",
                 "GGGGG");
             var steps = new List<BoardStep>();
 
-            new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, steps);
+            var result = new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, steps);
 
-            Assert.That(HasCreate(steps, new GridPosition(2, 0), PieceKind.Diagonal), Is.True);
-            Assert.That(HasCreate(steps, new GridPosition(2, 0), PieceKind.Shockwave), Is.False);
+            // No swap, so the gem takes the first free cell of the five-run, (0,0).
+            Assert.That(HasCreate(steps, new GridPosition(0, 0), PieceKind.Shockwave), Is.True);
+            Assert.That(result.SpecialsCreated, Is.EqualTo(1));
+            // Seven distinct cells are in the T; one of them became the shockwave gem.
+            Assert.That(result.CellsCleared, Is.EqualTo(6));
+        }
+
+        // A 7x7 board with no run anywhere: each row is the colour pattern Y R B P shifted by two more than the row
+        // below, so neighbours never match in a row or a column.
+        private static BoardModel SevenBySeven()
+        {
+            const string pattern = "YRBPYRBPYRBP";
+            var rows = new string[7];
+            for (var i = 0; i < 7; i++)
+            {
+                var y = 6 - i;
+                rows[i] = pattern.Substring((2 * y) % 4, 7);
+            }
+
+            return BoardBuilder.FromRows(rows);
+        }
+
+        // Puts three greens in a row starting at (startX, y) and a shockwave gem on the one at shockX.
+        private static BoardModel SevenBySevenWithShockwave(int startX, int y, int shockX)
+        {
+            var board = SevenBySeven();
+            for (var x = startX; x < startX + 3; x++)
+                board.SetPiece(new GridPosition(x, y), PieceColor.Green);
+
+            board.SetPiece(new GridPosition(shockX, y), PieceColor.Green, PieceKind.Shockwave);
+            return board;
         }
 
         [Test]
-        public void Resolve_ShockwaveGemInARun_ClearsTheFiveByFiveSquareAroundIt()
+        public void Resolve_ShockwaveGemInTheMiddle_ClearsTheFiveByFiveSquareAroundIt()
         {
-            var board = GreenRunOnTheMiddleRow();
-            board.SetPiece(new GridPosition(1, 2), PieceColor.Green, PieceKind.Shockwave);
+            var board = SevenBySevenWithShockwave(2, 3, 3);
 
             var result = new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, new List<BoardStep>());
 
-            // The square around (1,2) reaches x -1..3, so columns 0..3 (4 x 5 cells); column 4 is untouched.
-            Assert.That(result.CellsCleared, Is.EqualTo(20));
+            Assert.That(result.CellsCleared, Is.EqualTo(25));
             Assert.That(result.SpecialsFired, Is.EqualTo(1));
         }
 
         [Test]
-        public void Resolve_ShockwaveGemAtTheBoardEdge_OnlyClearsCellsInsideTheBoard()
+        public void Resolve_ShockwaveGemAtTheSideEdge_StillClearsAFullFiveByFive()
         {
-            var board = GreenRunOnTheMiddleRow();
-            board.SetPiece(new GridPosition(0, 2), PieceColor.Green, PieceKind.Shockwave);
+            // The gem is on column 0, so a centred square would lose two columns; the square slides in instead.
+            var board = SevenBySevenWithShockwave(0, 3, 0);
 
             var result = new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, new List<BoardStep>());
 
-            // x -2..2 inside the board is columns 0..2 (3 x 5 cells).
-            Assert.That(result.CellsCleared, Is.EqualTo(15));
+            Assert.That(result.CellsCleared, Is.EqualTo(25));
+        }
+
+        [Test]
+        public void Resolve_ShockwaveGemInTheCorner_StillClearsAFullFiveByFive()
+        {
+            var board = SevenBySevenWithShockwave(0, 0, 0);
+
+            var result = new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, new List<BoardStep>());
+
+            Assert.That(result.CellsCleared, Is.EqualTo(25));
+        }
+
+        [Test]
+        public void Resolve_ShockwaveGemAtTheEdge_ClearsTheSlidSquareNotTheCentredOne()
+        {
+            // The gem at (0,3) slides its square to columns 0..4, so a gem there is cleared and one at column 5 is not.
+            var board = SevenBySevenWithShockwave(0, 3, 0);
+            var steps = new List<BoardStep>();
+
+            new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, steps);
+
+            var clearedColumnFour = false;
+            var clearedColumnFive = false;
+            foreach (var step in steps)
+            {
+                if (step.Kind != BoardStepKind.Clear)
+                    continue;
+
+                clearedColumnFour |= step.From.X == 4;
+                clearedColumnFive |= step.From.X == 5;
+            }
+
+            Assert.That(clearedColumnFour, Is.True);
+            Assert.That(clearedColumnFive, Is.False);
         }
 
         [Test]
@@ -157,9 +217,10 @@ namespace Game.Tests.EditMode.Board
 
             var result = new TurnResolver(1).Resolve(board, new SeededRandom(1), 5, new List<BoardStep>());
 
-            // The line gem sits inside the square and clears the rest of its row: only (4,4) is new, so 21.
+            // On this small board the 5x5 square is the whole board (25 cells), which already holds the line gem's row,
+            // so the line gem fires (2 gems fired) without adding any new cell.
             Assert.That(result.SpecialsFired, Is.EqualTo(2));
-            Assert.That(result.CellsCleared, Is.EqualTo(21));
+            Assert.That(result.CellsCleared, Is.EqualTo(25));
         }
 
         [Test]
