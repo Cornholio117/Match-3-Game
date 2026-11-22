@@ -48,8 +48,8 @@ SDKs planned for later weeks (analytics, ads mediation, IAP, crash reporting, re
 
 Update this line when the phase changes:
 
-**Current week: 1 — C# foundations.** The project skeleton (folders, asmdefs, Git, Boot scene) is set up now;
-gameplay code starts in week 4. Until then, tasks are study exercises and setup only.
+**Current week: 5 — game loop + uGUI.** Weeks 1–4 are done: C# foundations, setup, and the core board
+(swap, match, cascades, line/diagonal/shockwave gems, combos). Week 5 adds the HUD (moves, score), win/lose flow and menus.
 
 Weekly focus:
 1–2 C# + patterns · 3 setup · 4 core gameplay · 5 loop + uGUI · 6 save/economy/Addressables ·
