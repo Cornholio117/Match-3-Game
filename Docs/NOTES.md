@@ -238,7 +238,7 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - Always subscribe in `OnEnable` and unsubscribe in `OnDisable`, or destroyed objects stay on the list.
 - C# `event` for code-to-code; `UnityEvent` only for designer-wired Inspector clicks.
 
-## uGUI fundamentals: canvases, scaler, anchors, safe area (Week 5, Sun)
+## uGUI fundamentals: canvases, scaler, anchors, safe area (Week 5, day 2, done early on day 1)
 - A **Canvas** is a transparent sheet over the camera view that holds UI. When anything on a canvas changes, Unity rebuilds that **whole canvas**, so we split by how often things change (R4/R5.6): `HUD Canvas` (moves, score; changes), `Popup Canvas` (popups), `Static Canvas` (backgrounds; never changes, no `GraphicRaycaster` because nothing is clickable). Popup sort order is 10 so a popup always draws above the HUD.
 - **Canvas Scaler** is *Scale With Screen Size*, reference 1080×1920 (portrait), match 0.5: the UI keeps the same relative size on any phone. Our canvases were already set up this way in week 3.
 - **Anchors and pivot:** anchors say where an element sticks to its parent (fractions 0..1, so they survive any resolution); offsets are pixel distances from those anchors. The `TopBar` is anchored to the top edge (min (0,1), max (1,1), pivot (0.5,1)), 160 tall; `MovesLabel` takes the left half and `ScoreLabel` the right half, each with a 40 px margin.
@@ -246,3 +246,10 @@ Short notes in plain words, one entry per topic. Newest at the bottom. Review th
 - **TextMeshPro:** `TextMeshProUGUI` for all text, `Raycast Target` off on labels (they are not clickable, R5.6). Updating a label with `SetText("{0}", value)` avoids a new string per update (R5.1).
 - Checked at 3 shapes (1080×2340 with a simulated notch and gesture bar, 1080×1920, 1536×2048) by rendering the HUD with a temporary camera into textures: labels stay in the top corners and drop below the notch on the tall phone. 207 tests pass (6 new in `SafeAreaMathTests`); removing the screen-height division fails 1.
 - The labels are placeholders ("Moves: 20", "Score: 0"); wiring them to the moves and score models comes next.
+
+## Level data (Week 5, day 1)
+- A level is a `LevelConfig` ScriptableObject (R7/P7: no gameplay numbers in scripts): board width and height, colour count (3–7), moves, and a goal. The goal is a type (`LevelGoalType` in Core: `Score` or `CollectColor`), an amount, and for collect a colour. `[Min]`/`[Range]` block invalid values in the Inspector; `[FormerlySerializedAs("_targetScore")]` keeps old data readable after the rename.
+- Five levels: `SO_Level_01`–`05` (all 8×8; 4, 4, 5, 5, 5 colours; 20, 18, 20, 18, 15 moves; goals: score 1000, collect 20 Green, score 2000, collect 25 Red, score 2500). The numbers are first guesses to tune later; goals are data only until the score and goal logic are built (day 4).
+- `BoardController` now has one `_level` reference and builds the board from its width, height and colour count (its old size and colour fields are gone). Missing level = a clear `GameLog.Error` in `Awake`.
+- Data validation test over every level asset (`AllLevelConfigs_HaveValidValues`): size at least 3, colours 3–7, moves and goal amount above 0, and a collect colour that the level actually spawns. It names the asset path when it fails. Proof it bites: setting level 4 to collect Pink while it spawns 5 colours fails it with "SO_Level_04 collects a colour the level never spawns". 209 tests pass.
+- Play-mode check: the 20-turn probe on the level-driven board: 15 valid and 5 rejected swaps, 0 bad turns, 64 gems at the end, no errors.
