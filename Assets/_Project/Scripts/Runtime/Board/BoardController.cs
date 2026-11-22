@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Game.Core.Board;
 using Game.Core.Common;
+using Game.Runtime.Config;
 using UnityEngine;
 
 namespace Game.Runtime.Board
@@ -17,11 +18,8 @@ namespace Game.Runtime.Board
         [SerializeField] private BoardInputHandler _input;
 
         [Header("Game")]
-        [SerializeField, Min(3)] private int _width = 8;
-        [SerializeField, Min(3)] private int _height = 8;
-
-        [Tooltip("How many colours are in play (3 to 7). Early levels use 4, later ones 5 or more.")]
-        [SerializeField, Range(3, 7)] private int _colorCount = 5;
+        [Tooltip("The level to play: board size, colours, moves and goal are read from it.")]
+        [SerializeField] private LevelConfig _level;
 
         [Tooltip("How far a shockwave gem reaches, in cells: 2 clears a 5x5 square, 1 a 3x3 square.")]
         [SerializeField, Range(1, 4)] private int _shockwaveRadius = 2;
@@ -38,9 +36,9 @@ namespace Game.Runtime.Board
 
         private void Awake()
         {
-            if (_boardView == null || _input == null)
+            if (_boardView == null || _input == null || _level == null)
             {
-                GameLog.Error(nameof(BoardController), $"Missing board view or input on {name}");
+                GameLog.Error(nameof(BoardController), $"Missing board view, input or level on {name}");
                 enabled = false;
             }
         }
@@ -49,7 +47,7 @@ namespace Game.Runtime.Board
         private void Start()
         {
             var seed = _seed != 0 ? _seed : Environment.TickCount;
-            _game = BoardGame.CreateFilled(_width, _height, _colorCount, new SeededRandom(seed),
+            _game = BoardGame.CreateFilled(_level.Width, _level.Height, _level.ColorCount, new SeededRandom(seed),
                 shockwaveRadius: _shockwaveRadius);
             _boardView.Build(_game.Board);
             GameLog.Info(nameof(BoardController), $"New board, seed {seed}");
@@ -71,7 +69,7 @@ namespace Game.Runtime.Board
                 return;
 
             // A swipe off the edge of the board has no neighbour to swap with.
-            if (!a.IsInside(_width, _height) || !b.IsInside(_width, _height))
+            if (!a.IsInside(_level.Width, _level.Height) || !b.IsInside(_level.Width, _level.Height))
                 return;
 
             _ = ResolveSwapAsync(a, b);

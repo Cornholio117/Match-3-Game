@@ -12,5 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdf0c22cbf8df2e4894aabf2d5978bd8, type: 3}
   m_Name: SO_Level_01
   m_EditorClassIdentifier: Game.Runtime::Game.Runtime.Config.LevelConfig
+  _width: 8
+  _height: 8
+  _colorCount: 4
   _moves: 20
-  _targetScore: 1000
+  _goalType: 0
+  _goalAmount: 1000
+  _goalColor: 1

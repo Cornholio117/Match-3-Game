@@ -470,9 +470,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Runtime::Game.Runtime.Board.BoardController
   _boardView: {fileID: 878711545}
   _input: {fileID: 878711546}
-  _width: 8
-  _height: 8
-  _colorCount: 5
+  _level: {fileID: 11400000, guid: 442c41f2ebd1bd14aa2a5b3259e920f4, type: 2}
   _shockwaveRadius: 2
   _seed: 0
   _debugMode: 0
