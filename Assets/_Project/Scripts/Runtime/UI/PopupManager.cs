@@ -1,6 +1,7 @@
 using Game.Core.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
 
 namespace Game.Runtime.UI
 {
@@ -58,6 +59,7 @@ namespace Game.Runtime.UI
             if (_debugMode)
             {
                 InputSystem.onDeviceChange += HandleDeviceChange;
+                InputSystem.onEvent += HandleInputEvent;
                 for (var i = 0; i < InputSystem.devices.Count; i++)
                     GameLog.Info(nameof(PopupManager), $"input device at start: {InputSystem.devices[i].layout} ({InputSystem.devices[i].displayName})");
             }
@@ -70,20 +72,35 @@ namespace Game.Runtime.UI
             _pausePresenter?.Disable();
 
             if (_debugMode)
+            {
                 InputSystem.onDeviceChange -= HandleDeviceChange;
+                InputSystem.onEvent -= HandleInputEvent;
+            }
         }
 
-        // The Android back button reaches the Input System as the Escape key. Checking one key each frame
-        // is input polling, which R5.4 allows, and it allocates nothing.
+        // The Android back button reaches the Input System as the Escape key. Phones report several keyboard-type
+        // devices (this one has six: hardware keys, the on-screen keyboard, a virtual one), and the back press does not
+        // always arrive on Keyboard.current, so every keyboard is checked. Polling a few keys each frame is input
+        // polling, which R5.4 allows, and it allocates nothing.
         private void Update()
         {
-            var keyboard = Keyboard.current;
-
             if (_debugMode)
-                LogBackKeyState(keyboard);
+                LogBackKeyState(Keyboard.current);
 
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            if (BackPressedThisFrame())
                 _stack.CloseTopOnBack();
+        }
+
+        private static bool BackPressedThisFrame()
+        {
+            var devices = InputSystem.devices;
+            for (var i = 0; i < devices.Count; i++)
+            {
+                if (devices[i] is Keyboard keyboard && keyboard.escapeKey.wasPressedThisFrame)
+                    return true;
+            }
+
+            return false;
         }
 
         // Debug only (R8): logs when the keyboard device appears and every change of the Escape key (the Android
@@ -108,12 +125,26 @@ namespace Game.Runtime.UI
             }
 
             if (keyboard.escapeKey.wasPressedThisFrame)
-                GameLog.Info(nameof(PopupManager), $"escape wasPressedThisFrame at frame {Time.frameCount}");
+                GameLog.Info(nameof(PopupManager), $"escape wasPressedThisFrame on Keyboard.current ({keyboard.displayName}) at frame {Time.frameCount}");
+
+            var devices = InputSystem.devices;
+            for (var i = 0; i < devices.Count; i++)
+            {
+                if (devices[i] is Keyboard other && other != keyboard && other.escapeKey.wasPressedThisFrame)
+                    GameLog.Info(nameof(PopupManager), $"escape wasPressedThisFrame on ANOTHER keyboard ({other.displayName}) at frame {Time.frameCount}");
+            }
         }
 
         private static void HandleDeviceChange(InputDevice device, InputDeviceChange change)
         {
             GameLog.Info(nameof(PopupManager), $"input device {change}: {device.layout} ({device.displayName}) at frame {Time.frameCount}");
+        }
+
+        // Debug only: every raw input event that targets a keyboard, before the Input System applies it.
+        private static void HandleInputEvent(InputEventPtr eventPtr, InputDevice device)
+        {
+            if (device is Keyboard)
+                GameLog.Info(nameof(PopupManager), $"raw event {eventPtr.type} on keyboard ({device.displayName}) at frame {Time.frameCount}");
         }
 
         /// <summary>Opens the pause popup. Called by the HUD pause button.</summary>
