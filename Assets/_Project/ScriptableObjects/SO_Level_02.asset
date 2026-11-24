@@ -15,7 +15,7 @@ MonoBehaviour:
   _width: 8
   _height: 8
   _colorCount: 4
-  _moves: 18
+  _moves: 12
   _goalType: 1
-  _goalAmount: 20
+  _goalAmount: 50
   _goalColor: 1

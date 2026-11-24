@@ -17,5 +17,5 @@ MonoBehaviour:
   _colorCount: 5
   _moves: 15
   _goalType: 0
-  _goalAmount: 2500
+  _goalAmount: 3000
   _goalColor: 1

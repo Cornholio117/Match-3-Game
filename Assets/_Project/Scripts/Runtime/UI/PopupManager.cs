@@ -21,6 +21,8 @@ namespace Game.Runtime.UI
         // depending on which object Unity wakes first.
         private readonly PopupStack _stack = new PopupStack();
         private PausePopupPresenter _pausePresenter;
+        private bool _loggedKeyboardMissing = true;
+        private bool _loggedEscapeDown;
 
         /// <summary>The stack of open popups, for the code that opens popups.</summary>
 
@@ -52,6 +54,13 @@ namespace Game.Runtime.UI
             _stack.Opened += HandleOpened;
             _stack.Closed += HandleClosed;
             _pausePresenter?.Enable();
+
+            if (_debugMode)
+            {
+                InputSystem.onDeviceChange += HandleDeviceChange;
+                for (var i = 0; i < InputSystem.devices.Count; i++)
+                    GameLog.Info(nameof(PopupManager), $"input device at start: {InputSystem.devices[i].layout} ({InputSystem.devices[i].displayName})");
+            }
         }
 
         private void OnDisable()
@@ -59,6 +68,9 @@ namespace Game.Runtime.UI
             _stack.Opened -= HandleOpened;
             _stack.Closed -= HandleClosed;
             _pausePresenter?.Disable();
+
+            if (_debugMode)
+                InputSystem.onDeviceChange -= HandleDeviceChange;
         }
 
         // The Android back button reaches the Input System as the Escape key. Checking one key each frame
@@ -66,8 +78,42 @@ namespace Game.Runtime.UI
         private void Update()
         {
             var keyboard = Keyboard.current;
+
+            if (_debugMode)
+                LogBackKeyState(keyboard);
+
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
                 _stack.CloseTopOnBack();
+        }
+
+        // Debug only (R8): logs when the keyboard device appears and every change of the Escape key (the Android
+        // back button), with the frame number, to find out why a back press is sometimes ignored on a phone.
+        private void LogBackKeyState(Keyboard keyboard)
+        {
+            var missing = keyboard == null;
+            if (missing != _loggedKeyboardMissing)
+            {
+                _loggedKeyboardMissing = missing;
+                GameLog.Info(nameof(PopupManager), $"Keyboard.current is {(missing ? "missing" : "present")} at frame {Time.frameCount}");
+            }
+
+            if (missing)
+                return;
+
+            var down = keyboard.escapeKey.isPressed;
+            if (down != _loggedEscapeDown)
+            {
+                _loggedEscapeDown = down;
+                GameLog.Info(nameof(PopupManager), $"escape isPressed={down} at frame {Time.frameCount}");
+            }
+
+            if (keyboard.escapeKey.wasPressedThisFrame)
+                GameLog.Info(nameof(PopupManager), $"escape wasPressedThisFrame at frame {Time.frameCount}");
+        }
+
+        private static void HandleDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            GameLog.Info(nameof(PopupManager), $"input device {change}: {device.layout} ({device.displayName}) at frame {Time.frameCount}");
         }
 
         /// <summary>Opens the pause popup. Called by the HUD pause button.</summary>

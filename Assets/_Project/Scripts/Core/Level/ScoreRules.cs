@@ -14,10 +14,16 @@ namespace Game.Core.Level
         public const int DefaultPointsPerGem = 10;
         public const int DefaultSpecialBonus = 50;
 
+        /// <summary>Chosen by measuring virtual players, not by guessing: uncapped, a lucky cascade could win level 1 in two turns.</summary>
+        public const int DefaultMaxWaveMultiplier = 2;
+
         private readonly int _pointsPerGem;
         private readonly int _specialBonus;
+        private readonly int _maxWaveMultiplier;
 
-        public ScoreRules(int pointsPerGem = DefaultPointsPerGem, int specialBonus = DefaultSpecialBonus)
+        /// <summary>maxWaveMultiplier limits how much a long cascade can multiply the points (1 means no multiplier at all).</summary>
+        public ScoreRules(
+            int pointsPerGem = DefaultPointsPerGem, int specialBonus = DefaultSpecialBonus, int maxWaveMultiplier = DefaultMaxWaveMultiplier)
         {
             if (pointsPerGem <= 0)
                 throw new ArgumentOutOfRangeException(nameof(pointsPerGem));
@@ -25,8 +31,12 @@ namespace Game.Core.Level
             if (specialBonus < 0)
                 throw new ArgumentOutOfRangeException(nameof(specialBonus));
 
+            if (maxWaveMultiplier < 1)
+                throw new ArgumentOutOfRangeException(nameof(maxWaveMultiplier));
+
             _pointsPerGem = pointsPerGem;
             _specialBonus = specialBonus;
+            _maxWaveMultiplier = maxWaveMultiplier;
         }
 
         /// <summary>
@@ -48,7 +58,7 @@ namespace Game.Core.Level
                     if (previousWasSpawn)
                         wave++;
 
-                    total += _pointsPerGem * wave;
+                    total += _pointsPerGem * Math.Min(wave, _maxWaveMultiplier);
                 }
                 else if (kind == BoardStepKind.Create)
                 {

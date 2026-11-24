@@ -39,18 +39,31 @@ namespace Game.Tests.EditMode.Level
         }
 
         [Test]
-        public void Calculate_SecondWave_CountsDoubleAndThirdTriple()
+        public void Calculate_Cascade_SecondWaveCountsDoubleAndLaterWavesStayAtDoubleByDefault()
         {
             var steps = new List<BoardStep>();
-            AddClears(steps, 3);
-            AddRefill(steps, 3);
-            AddClears(steps, 3);
-            AddRefill(steps, 3);
-            AddClears(steps, 3);
-            AddRefill(steps, 3);
+            for (var wave = 0; wave < 3; wave++)
+            {
+                AddClears(steps, 3);
+                AddRefill(steps, 3);
+            }
 
-            // 3 gems x 10 x 1, then x 2, then x 3.
-            Assert.That(new ScoreRules().Calculate(steps), Is.EqualTo(30 + 60 + 90));
+            // 3 gems x 10, then x 2, then still x 2: the default cap keeps long cascades from running away (measured
+            // with the balance simulation, see LevelBalanceTests).
+            Assert.That(new ScoreRules().Calculate(steps), Is.EqualTo(30 + 60 + 60));
+        }
+
+        [Test]
+        public void Calculate_NoCap_WavesKeepGrowing()
+        {
+            var steps = new List<BoardStep>();
+            for (var wave = 0; wave < 3; wave++)
+            {
+                AddClears(steps, 3);
+                AddRefill(steps, 3);
+            }
+
+            Assert.That(new ScoreRules(maxWaveMultiplier: int.MaxValue).Calculate(steps), Is.EqualTo(30 + 60 + 90));
         }
 
         [Test]
@@ -84,6 +97,28 @@ namespace Game.Tests.EditMode.Level
             AddClears(steps, 3);
 
             Assert.That(new ScoreRules(pointsPerGem: 5, specialBonus: 0).Calculate(steps), Is.EqualTo(15));
+        }
+
+        [Test]
+        public void Calculate_WaveMultiplierCap_StopsTheMultiplierGrowing()
+        {
+            var steps = new List<BoardStep>();
+            for (var wave = 0; wave < 4; wave++)
+            {
+                AddClears(steps, 3);
+                AddRefill(steps, 3);
+            }
+
+            // Without a cap the waves count x1, x2, x3, x4. Capped at 2 they count x1, x2, x2, x2.
+            var capped = new ScoreRules(10, 50, maxWaveMultiplier: 2).Calculate(steps);
+
+            Assert.That(capped, Is.EqualTo(30 + 60 + 60 + 60));
+        }
+
+        [Test]
+        public void Constructor_MaxWaveMultiplierBelowOne_Throws()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ScoreRules(10, 50, 0));
         }
 
         [Test]
