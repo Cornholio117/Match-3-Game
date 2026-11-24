@@ -34,6 +34,15 @@ namespace Game.Runtime.Board
         private BoardGame _game;
         private bool _isBusy;
 
+        /// <summary>The level being played.</summary>
+        public LevelConfig Level => _level;
+
+        /// <summary>
+        /// Raised after an accepted swap has finished animating, with the steps of that turn. The list is reused for
+        /// the next turn, so listeners must use it during the call and not keep it.
+        /// </summary>
+        public event Action<List<BoardStep>> TurnPlayed;
+
         private void Awake()
         {
             if (_boardView == null || _input == null || _level == null)
@@ -88,6 +97,7 @@ namespace Game.Runtime.Board
                 {
                     await _boardView.PlaySwapAsync(a, b);
                     await _boardView.PlayStepsAsync(_steps);
+                    TurnPlayed?.Invoke(_steps);
 
                     if (_debugMode)
                         GameLog.Info(nameof(BoardController), $"cascades {outcome.Turn.Cascades}, cleared {outcome.Turn.CellsCleared}, limit hit {outcome.Turn.HitLimit}");

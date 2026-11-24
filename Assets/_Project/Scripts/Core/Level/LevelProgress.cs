@@ -10,8 +10,6 @@ namespace Game.Core.Level
     /// </summary>
     public sealed class LevelProgress
     {
-        private readonly LevelGoalType _goalType;
-        private readonly PieceColor _goalColor;
         private readonly ScoreRules _rules;
 
         public event Action<int> ScoreChanged;
@@ -19,13 +17,18 @@ namespace Game.Core.Level
         public event Action<LevelState> StateChanged;
 
         public MovesModel Moves { get; }
+        public LevelGoalType GoalType { get; }
+
+        /// <summary>The colour to collect; None for a score goal.</summary>
+        public PieceColor GoalColor { get; }
+
         public int GoalAmount { get; }
         public int Score { get; private set; }
         public int Collected { get; private set; }
         public LevelState State { get; private set; }
 
         /// <summary>How far along the goal is: the score for a score goal, the gems collected for a collect goal.</summary>
-        public int GoalProgress => _goalType == LevelGoalType.Score ? Score : Collected;
+        public int GoalProgress => GoalType == LevelGoalType.Score ? Score : Collected;
 
         public LevelProgress(LevelGoalType goalType, int goalAmount, PieceColor goalColor, int moves, ScoreRules rules)
         {
@@ -35,8 +38,8 @@ namespace Game.Core.Level
             if (goalType == LevelGoalType.CollectColor && goalColor == PieceColor.None)
                 throw new ArgumentException("A collect goal needs a colour.", nameof(goalColor));
 
-            _goalType = goalType;
-            _goalColor = goalColor;
+            GoalType = goalType;
+            GoalColor = goalColor;
             _rules = rules ?? throw new ArgumentNullException(nameof(rules));
             GoalAmount = goalAmount;
             Moves = new MovesModel(moves);
@@ -64,8 +67,8 @@ namespace Game.Core.Level
                 ScoreChanged?.Invoke(Score);
             }
 
-            if (_goalType == LevelGoalType.CollectColor)
-                Collected += CountCleared(steps, _goalColor);
+            if (GoalType == LevelGoalType.CollectColor)
+                Collected += CountCleared(steps, GoalColor);
 
             if (GoalProgress != progressBefore)
                 GoalProgressChanged?.Invoke(GoalProgress);
