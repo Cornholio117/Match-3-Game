@@ -23,12 +23,17 @@ namespace Game.Tests.EditMode.UI
             return new LevelProgress(LevelGoalType.Score, goal, PieceColor.None, moves, new ScoreRules());
         }
 
+        private static LevelEndPresenter Presenter(LevelProgress progress, PopupStack stack, PlayerProgress player = null, int levelIndex = 0)
+        {
+            return new LevelEndPresenter(progress, stack, player ?? new PlayerProgress(5), levelIndex);
+        }
+
         [Test]
         public void StateChanged_Won_OpensTheWinPopup()
         {
             var progress = Level(30, 5);
             var stack = new PopupStack();
-            new LevelEndPresenter(progress, stack).Enable();
+            Presenter(progress, stack).Enable();
 
             progress.ApplyTurn(ThreeGreenClears());
 
@@ -41,7 +46,7 @@ namespace Game.Tests.EditMode.UI
         {
             var progress = Level(1000, 1);
             var stack = new PopupStack();
-            new LevelEndPresenter(progress, stack).Enable();
+            Presenter(progress, stack).Enable();
 
             progress.ApplyTurn(ThreeGreenClears());
 
@@ -53,7 +58,7 @@ namespace Game.Tests.EditMode.UI
         {
             var progress = Level(1000, 5);
             var stack = new PopupStack();
-            new LevelEndPresenter(progress, stack).Enable();
+            Presenter(progress, stack).Enable();
 
             progress.ApplyTurn(ThreeGreenClears());
 
@@ -65,7 +70,7 @@ namespace Game.Tests.EditMode.UI
         {
             var progress = Level(30, 5);
             var stack = new PopupStack();
-            var presenter = new LevelEndPresenter(progress, stack);
+            var presenter = Presenter(progress, stack);
             presenter.Enable();
             presenter.Disable();
 
@@ -75,10 +80,54 @@ namespace Game.Tests.EditMode.UI
         }
 
         [Test]
-        public void Constructor_NullArguments_Throw()
+        public void StateChanged_Won_RecordsTheStarsForThatLevelAndUnlocksTheNext()
         {
-            Assert.Throws<ArgumentNullException>(() => new LevelEndPresenter(null, new PopupStack()));
-            Assert.Throws<ArgumentNullException>(() => new LevelEndPresenter(Level(10, 5), null));
+            // 30 points against a goal of 30 is 1 star.
+            var progress = Level(30, 5);
+            var player = new PlayerProgress(5);
+            Presenter(progress, new PopupStack(), player, levelIndex: 2).Enable();
+
+            progress.ApplyTurn(ThreeGreenClears());
+
+            Assert.That(player.GetStars(2), Is.EqualTo(1));
+            Assert.That(player.IsUnlocked(3), Is.True);
+            Assert.That(player.GetStars(0), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void StateChanged_Lost_RecordsNothing()
+        {
+            var progress = Level(1000, 1);
+            var player = new PlayerProgress(5);
+            Presenter(progress, new PopupStack(), player).Enable();
+
+            progress.ApplyTurn(ThreeGreenClears());
+
+            Assert.That(player.TotalStars, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void StateChanged_Won_RecordsTheStarsBeforeThePopupOpens()
+        {
+            // The win popup asks whether the next level is unlocked when it opens, so the result must already be saved.
+            var progress = Level(30, 5);
+            var stack = new PopupStack();
+            var player = new PlayerProgress(5);
+            var starsWhenOpened = -1;
+            stack.Opened += _ => starsWhenOpened = player.GetStars(0);
+            Presenter(progress, stack, player).Enable();
+
+            progress.ApplyTurn(ThreeGreenClears());
+
+            Assert.That(starsWhenOpened, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void Constructor_InvalidArguments_Throw()
+        {
+            Assert.Throws<ArgumentNullException>(() => new LevelEndPresenter(null, new PopupStack(), new PlayerProgress(5), 0));
+            Assert.Throws<ArgumentNullException>(() => new LevelEndPresenter(Level(10, 5), null, new PlayerProgress(5), 0));
+            Assert.Throws<ArgumentNullException>(() => new LevelEndPresenter(Level(10, 5), new PopupStack(), null, 0));
         }
     }
 }

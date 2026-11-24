@@ -18,9 +18,6 @@ namespace Game.Runtime.Board
         [SerializeField] private BoardInputHandler _input;
 
         [Header("Game")]
-        [Tooltip("The level to play: board size, colours, moves and goal are read from it.")]
-        [SerializeField] private LevelConfig _level;
-
         [Tooltip("How far a shockwave gem reaches, in cells: 2 clears a 5x5 square, 1 a 3x3 square.")]
         [SerializeField, Range(1, 4)] private int _shockwaveRadius = 2;
 
@@ -32,9 +29,10 @@ namespace Game.Runtime.Board
 
         private readonly List<BoardStep> _steps = new List<BoardStep>();
         private BoardGame _game;
+        private LevelConfig _level;
         private bool _isBusy;
 
-        /// <summary>The level being played.</summary>
+        /// <summary>The level being played; null until StartLevel has been called.</summary>
         public LevelConfig Level => _level;
 
         /// <summary>
@@ -45,25 +43,28 @@ namespace Game.Runtime.Board
 
         private void Awake()
         {
-            if (_boardView == null || _input == null || _level == null)
+            if (_boardView == null || _input == null)
             {
-                GameLog.Error(nameof(BoardController), $"Missing board view, input or level on {name}");
+                GameLog.Error(nameof(BoardController), $"Missing board view or input on {name}");
                 enabled = false;
             }
         }
 
-        // Start, not Awake: the pool and view must have finished their own Awake first.
-        private void Start()
-        {
-            StartNewGame();
-        }
-
         /// <summary>
-        /// Starts the level over with a fresh board. Call it only between turns (for example from a Retry button),
-        /// never while a turn is animating.
+        /// Starts a level with a fresh board: its size, colours and shockwave radius decide the board. Nothing is built
+        /// until this is called, so the game decides when and which level. Call it between turns (from a button or at
+        /// start-up), never while a turn is animating. It must not run before the board view's own Awake, so call it
+        /// from Start or later.
         /// </summary>
-        public void Restart()
+        public void StartLevel(LevelConfig level)
         {
+            if (level == null)
+            {
+                GameLog.Error(nameof(BoardController), $"StartLevel called with no level on {name}");
+                return;
+            }
+
+            _level = level;
             StartNewGame();
         }
 

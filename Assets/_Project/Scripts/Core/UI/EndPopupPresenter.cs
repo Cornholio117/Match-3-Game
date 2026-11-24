@@ -3,22 +3,31 @@ using Game.Core.Level;
 
 namespace Game.Core.UI
 {
-    /// <summary>What the presenter needs from a win or lose popup: the Retry button and a place to show the result.</summary>
+    /// <summary>What the presenter needs from a win or lose popup: its buttons, and a place to show the result.</summary>
     public interface IEndPopupView
     {
         event Action RetryClicked;
-        void ShowResult(int score, int goalProgress, int goalAmount);
+        event Action NextLevelClicked;
+        void ShowResult(int score, int goalProgress, int goalAmount, int stars, bool canGoNext);
     }
 
-    /// <summary>Something that can start the current level over.</summary>
-    public interface ILevelRestarter
+    /// <summary>What a popup button can ask the game to do with the level.</summary>
+    public interface ILevelFlow
     {
+        /// <summary>True when there is a next level and the player may play it.</summary>
+        bool CanStartNextLevel { get; }
+
+        /// <summary>Starts the current level over.</summary>
         void Restart();
+
+        /// <summary>Starts the next level. Does nothing when CanStartNextLevel is false.</summary>
+        void StartNextLevel();
     }
 
     /// <summary>
-    /// Decides what a win or lose popup does: it fills in the result when its popup opens, and Retry closes the popup
-    /// and restarts the level. One class serves both popups; the popup id tells them apart.
+    /// Decides what a win or lose popup does: it fills in the result (score, stars, whether Next Level is offered)
+    /// when its popup opens, and its buttons close the popup and then change the level. One class serves both
+    /// popups; the popup id tells them apart.
     /// </summary>
     public sealed class EndPopupPresenter
     {
@@ -26,11 +35,11 @@ namespace Game.Core.UI
         private readonly PopupStack _stack;
         private readonly PopupId _popupId;
         private readonly LevelProgress _progress;
-        private readonly ILevelRestarter _restarter;
+        private readonly ILevelFlow _flow;
         private bool _enabled;
 
         public EndPopupPresenter(
-            IEndPopupView view, PopupStack stack, PopupId popupId, LevelProgress progress, ILevelRestarter restarter)
+            IEndPopupView view, PopupStack stack, PopupId popupId, LevelProgress progress, ILevelFlow flow)
         {
             if (popupId == PopupId.None)
                 throw new ArgumentException("None is not a popup.", nameof(popupId));
@@ -38,7 +47,7 @@ namespace Game.Core.UI
             _view = view ?? throw new ArgumentNullException(nameof(view));
             _stack = stack ?? throw new ArgumentNullException(nameof(stack));
             _progress = progress ?? throw new ArgumentNullException(nameof(progress));
-            _restarter = restarter ?? throw new ArgumentNullException(nameof(restarter));
+            _flow = flow ?? throw new ArgumentNullException(nameof(flow));
             _popupId = popupId;
         }
 
@@ -50,6 +59,7 @@ namespace Game.Core.UI
             _enabled = true;
             _stack.Opened += HandleOpened;
             _view.RetryClicked += HandleRetryClicked;
+            _view.NextLevelClicked += HandleNextLevelClicked;
         }
 
         public void Disable()
@@ -60,19 +70,37 @@ namespace Game.Core.UI
             _enabled = false;
             _stack.Opened -= HandleOpened;
             _view.RetryClicked -= HandleRetryClicked;
+            _view.NextLevelClicked -= HandleNextLevelClicked;
         }
 
         private void HandleOpened(PopupId id)
         {
-            if (id == _popupId)
-                _view.ShowResult(_progress.Score, _progress.GoalProgress, _progress.GoalAmount);
+            if (id != _popupId)
+                return;
+
+            var won = _progress.State == LevelState.Won;
+            _view.ShowResult(
+                _progress.Score,
+                _progress.GoalProgress,
+                _progress.GoalAmount,
+                StarRating.Calculate(_progress),
+                won && _flow.CanStartNextLevel);
         }
 
-        // The popup is closed first so the restart starts from a clean screen.
+        // The popup is closed first so the new level starts from a clean screen.
         private void HandleRetryClicked()
         {
             _stack.Close(_popupId);
-            _restarter.Restart();
+            _flow.Restart();
+        }
+
+        private void HandleNextLevelClicked()
+        {
+            if (!_flow.CanStartNextLevel)
+                return;
+
+            _stack.Close(_popupId);
+            _flow.StartNextLevel();
         }
     }
 }
