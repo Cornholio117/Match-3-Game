@@ -17,6 +17,10 @@ namespace Game.Core.Level
         public event Action<LevelState> StateChanged;
 
         public MovesModel Moves { get; }
+
+        /// <summary>The moves the level began with, so a result can be judged by how many were left.</summary>
+        public int StartingMoves { get; }
+
         public LevelGoalType GoalType { get; }
 
         /// <summary>The colour to collect; None for a score goal.</summary>
@@ -43,6 +47,7 @@ namespace Game.Core.Level
             _rules = rules ?? throw new ArgumentNullException(nameof(rules));
             GoalAmount = goalAmount;
             Moves = new MovesModel(moves);
+            StartingMoves = moves;
             State = LevelState.InProgress;
         }
 
