@@ -75,6 +75,31 @@ namespace Game.Tests.EditMode.Config
             }
         }
 
+        // Proves every level can really be played, not only that its numbers look valid.
+        [Test]
+        public void AllLevelConfigs_BuildAFullBoardWithNoStartingRuns()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:LevelConfig"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var config = AssetDatabase.LoadAssetAtPath<LevelConfig>(path);
+
+                var game = BoardGame.CreateFilled(config.Width, config.Height, config.ColorCount, new Game.Core.Common.SeededRandom(7));
+                var model = new MovesModel(config.Moves);
+
+                var runs = new System.Collections.Generic.List<Match>();
+                MatchFinder.Find(game.Board, runs);
+                Assert.That(runs, Is.Empty, path);
+                Assert.That(model.Remaining, Is.EqualTo(config.Moves), path);
+
+                for (var y = 0; y < config.Height; y++)
+                {
+                    for (var x = 0; x < config.Width; x++)
+                        Assert.That(game.Board.GetPiece(new GridPosition(x, y)), Is.Not.EqualTo(PieceColor.None), $"{path} cell ({x},{y})");
+                }
+            }
+        }
+
         [Test]
         public void AllLevelConfigs_AtLeastFiveLevelsExist()
         {
