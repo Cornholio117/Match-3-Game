@@ -1,5 +1,6 @@
 using System;
 using Game.Core.Board;
+using Game.Runtime.UI;
 using UnityEngine;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
@@ -15,6 +16,9 @@ namespace Game.Runtime.Board
         [Header("References")]
         [SerializeField] private BoardView _boardView;
         [SerializeField] private Camera _camera;
+
+        [Tooltip("Optional. While a popup is open the board ignores touches: they are read here directly, so the popup's dim background cannot block them.")]
+        [SerializeField] private PopupManager _popups;
 
         [Header("Settings")]
         [Tooltip("How far a finger must move, in gem widths, before it counts as a swipe.")]
@@ -67,6 +71,9 @@ namespace Game.Runtime.Board
             if (_activeFinger != -1)
                 return;
 
+            if (_popups != null && _popups.IsAnyOpen)
+                return;
+
             _activeFinger = finger.index;
             var world = ScreenToBoardPlane(finger.screenPosition);
             _hasStart = _boardView.TryGetCell(world, out _startCell);
@@ -80,6 +87,13 @@ namespace Game.Runtime.Board
         {
             if (finger.index != _activeFinger || !_hasStart)
                 return;
+
+            // A popup opened while this finger was down: drop the swipe.
+            if (_popups != null && _popups.IsAnyOpen)
+            {
+                _hasStart = false;
+                return;
+            }
 
             var world = ScreenToBoardPlane(finger.screenPosition);
             var delta = world - _startWorld;
