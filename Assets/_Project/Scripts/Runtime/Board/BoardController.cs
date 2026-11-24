@@ -31,6 +31,16 @@ namespace Game.Runtime.Board
         private BoardGame _game;
         private LevelConfig _level;
         private bool _isBusy;
+        private bool _inputEnabled = true;
+
+        /// <summary>
+        /// Switches swipes on or off. The app turns them off while a menu is showing, because the board is hidden
+        /// then and a stray touch must not play a turn.
+        /// </summary>
+        public void SetInputEnabled(bool enabled)
+        {
+            _inputEnabled = enabled;
+        }
 
         /// <summary>The level being played; null until StartLevel has been called.</summary>
         public LevelConfig Level => _level;
@@ -89,7 +99,7 @@ namespace Game.Runtime.Board
 
         private void HandleSwapRequested(GridPosition a, GridPosition b)
         {
-            if (_isBusy || _game == null)
+            if (!_inputEnabled || _isBusy || _game == null)
                 return;
 
             // A swipe off the edge of the board has no neighbour to swap with.

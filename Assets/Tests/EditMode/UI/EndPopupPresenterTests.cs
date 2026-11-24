@@ -13,6 +13,7 @@ namespace Game.Tests.EditMode.UI
         {
             public event Action RetryClicked;
             public event Action NextLevelClicked;
+            public event Action LevelSelectClicked;
             public int ShownScore = -1;
             public int ShownProgress = -1;
             public int ShownAmount = -1;
@@ -39,6 +40,11 @@ namespace Game.Tests.EditMode.UI
             {
                 NextLevelClicked?.Invoke();
             }
+
+            public void PressLevelSelect()
+            {
+                LevelSelectClicked?.Invoke();
+            }
         }
 
         // Remembers whether the popup was already closed at the moment the level flow was asked to move on.
@@ -48,6 +54,7 @@ namespace Game.Tests.EditMode.UI
             private readonly PopupId _popup;
             public int RestartCalls;
             public int NextCalls;
+            public int LevelSelectCalls;
             public bool PopupWasOpenAtCall;
 
             public bool CanStartNextLevel { get; set; }
@@ -67,6 +74,12 @@ namespace Game.Tests.EditMode.UI
             public void StartNextLevel()
             {
                 NextCalls++;
+                PopupWasOpenAtCall = _stack.IsOpen(_popup);
+            }
+
+            public void OpenLevelSelect()
+            {
+                LevelSelectCalls++;
                 PopupWasOpenAtCall = _stack.IsOpen(_popup);
             }
         }
@@ -195,6 +208,23 @@ namespace Game.Tests.EditMode.UI
             Assert.That(flow.PopupWasOpenAtCall, Is.False, "the popup must be closed before the next level starts");
         }
 
+        [TestCase(PopupId.Win)]
+        [TestCase(PopupId.Lose)]
+        public void LevelSelectClicked_ClosesThePopupThenOpensTheLevelSelectScreen(PopupId popup)
+        {
+            var stack = new PopupStack();
+            var view = new FakeEndView();
+            var flow = new FakeFlow(stack, popup);
+            new EndPopupPresenter(view, stack, popup, WonWithThreeStars(), flow).Enable();
+            stack.Open(popup);
+
+            view.PressLevelSelect();
+
+            Assert.That(stack.IsOpen(popup), Is.False);
+            Assert.That(flow.LevelSelectCalls, Is.EqualTo(1));
+            Assert.That(flow.PopupWasOpenAtCall, Is.False, "the popup must be closed before the screen changes");
+        }
+
         [Test]
         public void NextLevelClicked_WhenNoNextLevelCanStart_DoesNothing()
         {
@@ -222,9 +252,11 @@ namespace Game.Tests.EditMode.UI
 
             view.PressRetry();
             view.PressNextLevel();
+            view.PressLevelSelect();
 
             Assert.That(flow.RestartCalls, Is.EqualTo(0));
             Assert.That(flow.NextCalls, Is.EqualTo(0));
+            Assert.That(flow.LevelSelectCalls, Is.EqualTo(0));
         }
 
         [Test]

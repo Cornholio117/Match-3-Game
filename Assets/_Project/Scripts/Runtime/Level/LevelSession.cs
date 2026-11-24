@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Game.Core.Board;
 using Game.Core.Level;
@@ -13,7 +14,7 @@ namespace Game.Runtime.Level
     /// Puts levels together in the scene and runs them one after another: it starts any level from the catalog,
     /// builds that level's progress, shows it on the HUD, opens the win or lose popup when the level ends, and counts
     /// each finished turn from the board. It remembers the player's stars. It is a composition point, so it holds no
-    /// rules of its own.
+    /// rules of its own. It starts no level by itself: the app flow calls StartLevel when the player picks one.
     /// </summary>
     public sealed class LevelSession : MonoBehaviour, ILevelFlow
     {
@@ -21,14 +22,12 @@ namespace Game.Runtime.Level
         [SerializeField] private BoardController _board;
         [SerializeField] private HudView _hud;
         [SerializeField] private PopupManager _popups;
+        [SerializeField] private PausePopupView _pausePopup;
         [SerializeField] private EndPopupView _winPopup;
         [SerializeField] private EndPopupView _losePopup;
 
         [Header("Levels")]
         [SerializeField] private LevelCatalog _catalog;
-
-        [Tooltip("The level to start with, counting from 0.")]
-        [SerializeField, Min(0)] private int _firstLevelIndex;
 
         [Header("Debug")]
         [SerializeField] private bool _debugMode;
@@ -36,49 +35,54 @@ namespace Game.Runtime.Level
         private PlayerProgress _player;
         private LevelProgress _progress;
         private int _levelIndex;
+        private PausePopupPresenter _pausePresenter;
         private HudPresenter _hudPresenter;
         private LevelEndPresenter _levelEndPresenter;
         private EndPopupPresenter _winPresenter;
         private EndPopupPresenter _losePresenter;
 
+        /// <summary>Raised when a popup button asks to leave the level for the level select screen.</summary>
+        public event Action LevelSelectRequested;
+
+        /// <summary>The progress of the level being played; null until a level has started.</summary>
         public LevelProgress Progress => _progress;
 
-        /// <summary>The stars the player has earned so far.</summary>
-        public PlayerProgress Player => _player;
+        /// <summary>
+        /// The stars the player has earned so far. Created on first use, so other objects can ask for it in their own
+        /// Awake without depending on which object Unity wakes first.
+        /// </summary>
+        public PlayerProgress Player => _player ??= new PlayerProgress(_catalog.Count);
 
         /// <summary>Which level is being played, counting from 0.</summary>
         public int LevelIndex => _levelIndex;
 
         /// <summary>True when there is a next level and the player has unlocked it.</summary>
-        public bool CanStartNextLevel => _player != null && _player.HasNextLevel(_levelIndex) && _player.IsUnlocked(_levelIndex + 1);
+        public bool CanStartNextLevel => _progress != null && Player.HasNextLevel(_levelIndex) && Player.IsUnlocked(_levelIndex + 1);
 
         private void Awake()
         {
-            if (_board == null || _hud == null || _popups == null || _winPopup == null || _losePopup == null || _catalog == null || _catalog.Count == 0)
+            if (_board == null || _hud == null || _popups == null || _pausePopup == null || _winPopup == null || _losePopup == null
+                || _catalog == null || _catalog.Count == 0)
             {
                 GameLog.Error(nameof(LevelSession), $"Missing board, HUD, popup or level catalog reference on {name}");
                 enabled = false;
                 return;
             }
 
-            _player = new PlayerProgress(_catalog.Count);
+            _pausePresenter = new PausePopupPresenter(_pausePopup, _popups.Stack, this);
         }
 
         private void OnEnable()
         {
             _board.TurnPlayed += HandleTurnPlayed;
+            _pausePresenter.Enable();
         }
 
         private void OnDisable()
         {
             _board.TurnPlayed -= HandleTurnPlayed;
+            _pausePresenter.Disable();
             DisablePresenters();
-        }
-
-        // Start, not Awake: the board view must have finished its own Awake before a board is built.
-        private void Start()
-        {
-            StartLevel(Mathf.Clamp(_firstLevelIndex, 0, _catalog.Count - 1));
         }
 
         /// <summary>Starts a level from the catalog: a fresh board, new progress and new presenters.</summary>
@@ -114,13 +118,19 @@ namespace Game.Runtime.Level
                 StartLevel(_levelIndex + 1);
         }
 
+        /// <summary>Asks the app to leave this level for the level select screen.</summary>
+        public void OpenLevelSelect()
+        {
+            LevelSelectRequested?.Invoke();
+        }
+
         private void BuildProgress(LevelConfig level)
         {
             var stack = _popups.Stack;
 
             _progress = new LevelProgress(level.GoalType, level.GoalAmount, level.GoalColor, level.Moves, new ScoreRules());
             _hudPresenter = new HudPresenter(_progress, _hud);
-            _levelEndPresenter = new LevelEndPresenter(_progress, stack, _player, _levelIndex);
+            _levelEndPresenter = new LevelEndPresenter(_progress, stack, Player, _levelIndex);
             _winPresenter = new EndPopupPresenter(_winPopup, stack, PopupId.Win, _progress, this);
             _losePresenter = new EndPopupPresenter(_losePopup, stack, PopupId.Lose, _progress, this);
         }
@@ -149,6 +159,9 @@ namespace Game.Runtime.Level
 
         private void HandleTurnPlayed(List<BoardStep> steps)
         {
+            if (_progress == null)
+                return;
+
             _progress.ApplyTurn(steps);
 
             if (_debugMode)
@@ -157,7 +170,7 @@ namespace Game.Runtime.Level
 
         private void HandleStateChanged(LevelState state)
         {
-            GameLog.Info(nameof(LevelSession), $"level {state}, total stars {_player.TotalStars}");
+            GameLog.Info(nameof(LevelSession), $"level {state}, total stars {Player.TotalStars}");
         }
     }
 }

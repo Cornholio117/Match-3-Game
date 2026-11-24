@@ -1,3 +1,4 @@
+using System;
 using Game.Core.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -21,9 +22,11 @@ namespace Game.Runtime.UI
         // Created here, not in Awake, so other scene objects can use Stack in their own Awake or OnEnable without
         // depending on which object Unity wakes first.
         private readonly PopupStack _stack = new PopupStack();
-        private PausePopupPresenter _pausePresenter;
         private bool _loggedKeyboardMissing = true;
         private bool _loggedEscapeDown;
+
+        /// <summary>Raised when the back button is pressed and no popup is open.</summary>
+        public event Action BackPressedWithoutPopup;
 
         /// <summary>The stack of open popups, for the code that opens popups.</summary>
 
@@ -44,9 +47,6 @@ namespace Game.Runtime.UI
                 }
 
                 _popups[i].Hide();
-
-                if (_popups[i] is PausePopupView pausePopup)
-                    _pausePresenter = new PausePopupPresenter(pausePopup, _stack);
             }
         }
 
@@ -54,7 +54,6 @@ namespace Game.Runtime.UI
         {
             _stack.Opened += HandleOpened;
             _stack.Closed += HandleClosed;
-            _pausePresenter?.Enable();
 
             if (_debugMode)
             {
@@ -69,7 +68,6 @@ namespace Game.Runtime.UI
         {
             _stack.Opened -= HandleOpened;
             _stack.Closed -= HandleClosed;
-            _pausePresenter?.Disable();
 
             if (_debugMode)
             {
@@ -88,7 +86,20 @@ namespace Game.Runtime.UI
                 LogBackKeyState(Keyboard.current);
 
             if (BackPressedThisFrame())
+                HandleBackPress();
+        }
+
+        /// <summary>
+        /// What a back press does: a popup gets it first (a finished level's popup refuses it and stays). With none
+        /// open, the press belongs to the screen underneath, which the app flow decides. Public so it can be tested
+        /// without a real key press.
+        /// </summary>
+        public void HandleBackPress()
+        {
+            if (_stack.Count > 0)
                 _stack.CloseTopOnBack();
+            else
+                BackPressedWithoutPopup?.Invoke();
         }
 
         private static bool BackPressedThisFrame()

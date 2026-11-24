@@ -16,6 +16,9 @@ namespace Game.Runtime.UI
         [SerializeField] private TMP_Text _resultLabel;
         [SerializeField] private Button _retryButton;
 
+        [Tooltip("Leaves the level and opens the level select screen.")]
+        [SerializeField] private Button _levelSelectButton;
+
         [Header("Optional (win popup)")]
         [Tooltip("The button that starts the next level. Hidden when there is no next level to play.")]
         [SerializeField] private Button _nextLevelButton;
@@ -29,12 +32,13 @@ namespace Game.Runtime.UI
 
         public event Action RetryClicked;
         public event Action NextLevelClicked;
+        public event Action LevelSelectClicked;
 
         private void Awake()
         {
-            if (_resultLabel == null || _retryButton == null)
+            if (_resultLabel == null || _retryButton == null || _levelSelectButton == null)
             {
-                GameLog.Error(nameof(EndPopupView), $"Missing result label or Retry button on {name}");
+                GameLog.Error(nameof(EndPopupView), $"Missing result label, Retry or Level Select button on {name}");
                 enabled = false;
             }
         }
@@ -46,6 +50,9 @@ namespace Game.Runtime.UI
 
             if (_nextLevelButton != null)
                 _nextLevelButton.onClick.AddListener(HandleNextLevelButton);
+
+            if (_levelSelectButton != null)
+                _levelSelectButton.onClick.AddListener(HandleLevelSelectButton);
         }
 
         private void OnDisable()
@@ -55,6 +62,9 @@ namespace Game.Runtime.UI
 
             if (_nextLevelButton != null)
                 _nextLevelButton.onClick.RemoveListener(HandleNextLevelButton);
+
+            if (_levelSelectButton != null)
+                _levelSelectButton.onClick.RemoveListener(HandleLevelSelectButton);
         }
 
         // SetText with number arguments writes into the text buffer without creating a string (R5.1).
@@ -77,6 +87,11 @@ namespace Game.Runtime.UI
         private void HandleNextLevelButton()
         {
             NextLevelClicked?.Invoke();
+        }
+
+        private void HandleLevelSelectButton()
+        {
+            LevelSelectClicked?.Invoke();
         }
     }
 }

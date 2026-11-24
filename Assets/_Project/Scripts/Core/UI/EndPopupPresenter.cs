@@ -8,6 +8,7 @@ namespace Game.Core.UI
     {
         event Action RetryClicked;
         event Action NextLevelClicked;
+        event Action LevelSelectClicked;
         void ShowResult(int score, int goalProgress, int goalAmount, int stars, bool canGoNext);
     }
 
@@ -22,6 +23,9 @@ namespace Game.Core.UI
 
         /// <summary>Starts the next level. Does nothing when CanStartNextLevel is false.</summary>
         void StartNextLevel();
+
+        /// <summary>Leaves the level and shows the level select screen.</summary>
+        void OpenLevelSelect();
     }
 
     /// <summary>
@@ -60,6 +64,7 @@ namespace Game.Core.UI
             _stack.Opened += HandleOpened;
             _view.RetryClicked += HandleRetryClicked;
             _view.NextLevelClicked += HandleNextLevelClicked;
+            _view.LevelSelectClicked += HandleLevelSelectClicked;
         }
 
         public void Disable()
@@ -71,6 +76,7 @@ namespace Game.Core.UI
             _stack.Opened -= HandleOpened;
             _view.RetryClicked -= HandleRetryClicked;
             _view.NextLevelClicked -= HandleNextLevelClicked;
+            _view.LevelSelectClicked -= HandleLevelSelectClicked;
         }
 
         private void HandleOpened(PopupId id)
@@ -101,6 +107,12 @@ namespace Game.Core.UI
 
             _stack.Close(_popupId);
             _flow.StartNextLevel();
+        }
+
+        private void HandleLevelSelectClicked()
+        {
+            _stack.Close(_popupId);
+            _flow.OpenLevelSelect();
         }
     }
 }
