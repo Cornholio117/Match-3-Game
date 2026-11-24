@@ -17,16 +17,20 @@ namespace Game.Runtime.UI
         [Header("Debug")]
         [SerializeField] private bool _debugMode;
 
-        private PopupStack _stack;
+        // Created here, not in Awake, so other scene objects can use Stack in their own Awake or OnEnable without
+        // depending on which object Unity wakes first.
+        private readonly PopupStack _stack = new PopupStack();
         private PausePopupPresenter _pausePresenter;
 
+        /// <summary>The stack of open popups, for the code that opens popups.</summary>
+
         /// <summary>True while any popup is open; board input is ignored then.</summary>
-        public bool IsAnyOpen => _stack != null && _stack.Count > 0;
+        public bool IsAnyOpen => _stack.Count > 0;
+
+        public PopupStack Stack => _stack;
 
         private void Awake()
         {
-            _stack = new PopupStack();
-
             for (var i = 0; i < _popups.Length; i++)
             {
                 if (_popups[i] == null)
@@ -63,7 +67,7 @@ namespace Game.Runtime.UI
         {
             var keyboard = Keyboard.current;
             if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-                _stack.CloseTop();
+                _stack.CloseTopOnBack();
         }
 
         /// <summary>Opens the pause popup. Called by the HUD pause button.</summary>

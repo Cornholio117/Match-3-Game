@@ -98,6 +98,44 @@ namespace Game.Tests.EditMode.UI
         }
 
         [Test]
+        public void CloseTopOnBack_PausePopup_ClosesIt()
+        {
+            var stack = new PopupStack();
+            stack.Open(PopupId.Pause);
+
+            Assert.That(stack.CloseTopOnBack(), Is.True);
+            Assert.That(stack.Count, Is.EqualTo(0));
+        }
+
+        [TestCase(PopupId.Win)]
+        [TestCase(PopupId.Lose)]
+        public void CloseTopOnBack_EndPopup_StaysOpen(PopupId endPopup)
+        {
+            var stack = new PopupStack();
+            stack.Open(endPopup);
+
+            Assert.That(stack.CloseTopOnBack(), Is.False);
+            Assert.That(stack.IsOpen(endPopup), Is.True);
+        }
+
+        [Test]
+        public void CloseTopOnBack_PauseOnTopOfAnEndPopup_ClosesOnlyThePause()
+        {
+            var stack = new PopupStack();
+            stack.Open(PopupId.Win);
+            stack.Open(PopupId.Pause);
+
+            Assert.That(stack.CloseTopOnBack(), Is.True);
+            Assert.That(stack.Top, Is.EqualTo(PopupId.Win));
+        }
+
+        [Test]
+        public void CloseTopOnBack_NothingOpen_ReturnsFalse()
+        {
+            Assert.That(new PopupStack().CloseTopOnBack(), Is.False);
+        }
+
+        [Test]
         public void Events_OpenAndClose_ReportTheSamePopup()
         {
             var stack = new PopupStack();

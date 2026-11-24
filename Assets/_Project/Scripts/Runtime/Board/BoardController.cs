@@ -55,6 +55,20 @@ namespace Game.Runtime.Board
         // Start, not Awake: the pool and view must have finished their own Awake first.
         private void Start()
         {
+            StartNewGame();
+        }
+
+        /// <summary>
+        /// Starts the level over with a fresh board. Call it only between turns (for example from a Retry button),
+        /// never while a turn is animating.
+        /// </summary>
+        public void Restart()
+        {
+            StartNewGame();
+        }
+
+        private void StartNewGame()
+        {
             var seed = _seed != 0 ? _seed : Environment.TickCount;
             _game = BoardGame.CreateFilled(_level.Width, _level.Height, _level.ColorCount, new SeededRandom(seed),
                 shockwaveRadius: _shockwaveRadius);

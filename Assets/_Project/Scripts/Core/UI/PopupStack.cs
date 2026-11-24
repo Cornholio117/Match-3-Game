@@ -47,6 +47,19 @@ namespace Game.Core.UI
             return Close(_open[_open.Count - 1]);
         }
 
+        /// <summary>
+        /// What the Android back button does: closes the top popup, except the win and lose popups, which the player
+        /// must answer with their own buttons. Returns false when nothing was closed.
+        /// </summary>
+        public bool CloseTopOnBack()
+        {
+            var top = Top;
+            if (top == PopupId.None || top == PopupId.Win || top == PopupId.Lose)
+                return false;
+
+            return Close(top);
+        }
+
         /// <summary>Closes one specific popup, wherever it is in the stack. Returns false when it was not open.</summary>
         public bool Close(PopupId id)
         {
